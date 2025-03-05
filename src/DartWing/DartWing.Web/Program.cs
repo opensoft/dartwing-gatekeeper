@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Runtime.Versioning;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using DartWing.Web.Api;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.OpenApi.Models;
 
@@ -16,6 +17,8 @@ builder.Services.AddOpenApi();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddHttpContextAccessor();
+
+builder.Services.AddHttpClient("Azure");
 
 builder.Services.AddSwaggerGen(options =>
 {
@@ -72,6 +75,9 @@ builder.Services.Configure<JsonOptions>(options =>
     options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
 });
 
+builder.Services.AddAuthorization();
+builder.Services.AddAuthentication();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -92,7 +98,9 @@ app.UseSwaggerUI(settings =>
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.RegisterAzureApiEndpoints();
 
+app.UseRouting();
 var t =
     $"v.{typeof(Program).Assembly.GetName().Version}; {typeof(Program).Assembly.GetCustomAttribute<TargetFrameworkAttribute>()?.FrameworkName}; {System.Runtime.InteropServices.RuntimeInformation.OSDescription}";
 

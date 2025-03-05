@@ -1,0 +1,122 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
+using DartWing.Web.Azure;
+using Microsoft.AspNetCore.Mvc;
+
+namespace DartWing.Web.Api;
+
+public static class AzureApiEndpoints
+{
+    public static void RegisterAzureApiEndpoints(this IEndpointRouteBuilder endpoints)
+    {
+        var group = endpoints.MapGroup("api/azure/auth/callback").WithTags("Azure");
+
+        group.MapGet("", async ([FromQuery] string code,
+            [FromServices] IHttpClientFactory httpClientFactory,
+            CancellationToken ct) =>
+        {
+            var clientId = "73d0325d-51e6-4363-98c9-53d5aeb1b37d";
+            var secret = "**REMOVED_CLIENT_SECRET_1**";
+            var redirectUri = "http://localhost:5228/api/azure/auth/callback";
+
+            var client = httpClientFactory.CreateClient("Azure");
+
+            var token = await GetAccessToken(client, "common", clientId, secret, code, redirectUri, ct);
+            await CallGraphApi(client, token);
+            var folders = await new GraphApiAdapter("", token).GetFolders(ct);
+
+            return Results.Json(folders);
+        }).WithName("AzureAuthCallback").WithSummary("Azure auth callback");
+        
+        group.MapGet("service", async ([FromQuery] string code,
+            [FromServices] IHttpClientFactory httpClientFactory,
+            CancellationToken ct) =>
+        {
+            var clientId = "b8cd1e83-acee-4fa7-a7a4-b8b6ad15aa02";
+            var secret = "**REMOVED_CLIENT_SECRET_2**";
+            var redirectUri = "http://localhost:5228/api/azure/auth/callback/service";
+
+            var client = httpClientFactory.CreateClient("Azure");
+            
+            var userToken = await GetAccessToken(client, "common", clientId, secret, code, redirectUri, ct);
+            
+            var handler = new JwtSecurityTokenHandler();
+            var jwt = handler.ReadJwtToken(userToken);
+
+            var tenantId = jwt.Claims.FirstOrDefault(c => c.Type == "tid")?.Value;
+
+            var token = await GetAccessToken(client, tenantId, clientId, secret, "", redirectUri, ct);
+            await CallGraphApi(client, token);
+            var folders = await new GraphApiAdapter("", token).GetFolders(ct);
+
+            return Results.Json(folders);
+        }).WithName("AzureAuthServiceCallback").WithSummary("Azure service auth callback");
+    }
+
+    private static async Task<string?> GetAccessToken(HttpClient client, string tenantIdOrAccountType, string clientId, string clientSecret, string code, string redirectUri, CancellationToken ct)
+    {
+        byte[] responseBody;
+        var fileName = string.IsNullOrEmpty(code) ? $"__token{clientId}-service.json" : $"__token{clientId}-{code[..5]}-{code[..5]}.json";
+        if (false && File.Exists(fileName) && (DateTime.UtcNow - File.GetLastWriteTime(fileName)).TotalSeconds < 4000)
+        {
+            responseBody = await File.ReadAllBytesAsync(fileName, ct);
+        }
+        else
+        {
+            var tokenUrl = $"https://login.microsoftonline.com/{tenantIdOrAccountType}/oauth2/v2.0/token";
+            var dict = new Dictionary<string, string>
+            {
+                { "client_id", clientId },
+                { "client_secret", clientSecret },
+                { "redirect_uri", redirectUri },
+                { "scope", "https://graph.microsoft.com/.default offline_access" }
+            };
+            
+            if (string.IsNullOrEmpty(code))
+            {
+                dict["grant_type"] = "client_credentials";
+            }
+            else
+            {
+                dict["grant_type"] = "authorization_code";
+                dict["code"] = code;
+            }
+            var requestBody = new FormUrlEncodedContent(dict);
+
+            var response = await client.PostAsync(tokenUrl, requestBody, ct);
+            responseBody = await response.Content.ReadAsByteArrayAsync(ct);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                Console.WriteLine($"Error getting token: {Encoding.UTF8.GetString( responseBody)}");
+                return null;
+            }
+
+            await File.WriteAllBytesAsync(fileName, responseBody, ct);
+        }
+
+        var json = JsonDocument.Parse(responseBody);
+        var accessToken = json.RootElement.GetProperty("access_token").GetString();
+        return accessToken;
+    }
+    
+    private static async Task CallGraphApi(HttpClient client, string accessToken)
+    {
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+        var response = await client.GetAsync("https://graph.microsoft.com/v1.0/me");
+        var responseBody = await response.Content.ReadAsStringAsync();
+
+        if (response.IsSuccessStatusCode)
+        {
+            Console.WriteLine("Graph API Response:");
+            Console.WriteLine(responseBody);
+        }
+        else
+        {
+            Console.WriteLine($"Error calling Graph API: {responseBody}");
+        }
+    }
+}
