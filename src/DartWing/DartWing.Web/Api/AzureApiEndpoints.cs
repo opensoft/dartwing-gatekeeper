@@ -17,8 +17,8 @@ public static class AzureApiEndpoints
             [FromServices] IHttpClientFactory httpClientFactory,
             CancellationToken ct) =>
         {
-            var clientId = "73d0325d-51e6-4363-98c9-53d5aeb1b37d";
-            var secret = "**REMOVED_CLIENT_SECRET_1**";
+            var clientId = "d177cf09-932e-4590-a6b3-47f6ac1a9691";
+            var secret = "**REMOVED_CLIENT_SECRET_5**";
             var redirectUri = "http://localhost:5228/api/azure/auth/callback";
 
             var client = httpClientFactory.CreateClient("Azure");
@@ -71,7 +71,7 @@ public static class AzureApiEndpoints
                 { "client_id", clientId },
                 { "client_secret", clientSecret },
                 { "redirect_uri", redirectUri },
-                { "scope", "https://graph.microsoft.com/.default offline_access" }
+                { "scope", "openid profile email Bookings.ReadWrite.All" } //Files.Read.All Bookings.ReadWrite.All offline_access
             };
             
             if (string.IsNullOrEmpty(code))
