@@ -4,6 +4,8 @@ using System.Runtime.Versioning;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using DartWing.Web.Api;
+using DartWing.Web.Auth;
+using DartWing.Web.Users;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.OpenApi.Models;
 
@@ -75,8 +77,7 @@ builder.Services.Configure<JsonOptions>(options =>
     options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
 });
 
-builder.Services.AddAuthorization();
-builder.Services.AddAuthentication();
+builder.Services.AddAuthenticationLogic(builder.Configuration);
 
 var app = builder.Build();
 
@@ -99,6 +100,7 @@ app.UseSwaggerUI(settings =>
 app.UseAuthentication();
 app.UseAuthorization();
 app.RegisterAzureApiEndpoints();
+app.RegisterUserApiEndpoints();
 
 app.UseRouting();
 var t =

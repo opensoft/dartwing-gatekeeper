@@ -55,53 +55,46 @@ public static class AzureApiEndpoints
         }).WithName("AzureAuthServiceCallback").WithSummary("Azure service auth callback");
     }
 
-    private static async Task<string?> GetAccessToken(HttpClient client, string tenantIdOrAccountType, string clientId, string clientSecret, string code, string redirectUri, CancellationToken ct)
+    private static async Task<string?> GetAccessToken(HttpClient client, string tenantIdOrAccountType, string clientId,
+        string clientSecret, string code, string redirectUri, CancellationToken ct)
     {
-        byte[] responseBody;
-        var fileName = string.IsNullOrEmpty(code) ? $"__token{clientId}-service.json" : $"__token{clientId}-{code[..5]}-{code[..5]}.json";
-        if (false && File.Exists(fileName) && (DateTime.UtcNow - File.GetLastWriteTime(fileName)).TotalSeconds < 4000)
+        var tokenUrl = $"https://login.microsoftonline.com/{tenantIdOrAccountType}/oauth2/v2.0/token";
+        var dict = new Dictionary<string, string>
         {
-            responseBody = await File.ReadAllBytesAsync(fileName, ct);
+            { "client_id", clientId },
+            { "client_secret", clientSecret },
+            { "redirect_uri", redirectUri },
+            {
+                "scope", "openid profile email Bookings.ReadWrite.All"
+            } //Files.Read.All Bookings.ReadWrite.All offline_access
+        };
+
+        if (string.IsNullOrEmpty(code))
+        {
+            dict["grant_type"] = "client_credentials";
         }
         else
         {
-            var tokenUrl = $"https://login.microsoftonline.com/{tenantIdOrAccountType}/oauth2/v2.0/token";
-            var dict = new Dictionary<string, string>
-            {
-                { "client_id", clientId },
-                { "client_secret", clientSecret },
-                { "redirect_uri", redirectUri },
-                { "scope", "openid profile email Bookings.ReadWrite.All" } //Files.Read.All Bookings.ReadWrite.All offline_access
-            };
-            
-            if (string.IsNullOrEmpty(code))
-            {
-                dict["grant_type"] = "client_credentials";
-            }
-            else
-            {
-                dict["grant_type"] = "authorization_code";
-                dict["code"] = code;
-            }
-            var requestBody = new FormUrlEncodedContent(dict);
+            dict["grant_type"] = "authorization_code";
+            dict["code"] = code;
+        }
 
-            var response = await client.PostAsync(tokenUrl, requestBody, ct);
-            responseBody = await response.Content.ReadAsByteArrayAsync(ct);
+        var requestBody = new FormUrlEncodedContent(dict);
 
-            if (!response.IsSuccessStatusCode)
-            {
-                Console.WriteLine($"Error getting token: {Encoding.UTF8.GetString( responseBody)}");
-                return null;
-            }
+        var response = await client.PostAsync(tokenUrl, requestBody, ct);
+        var responseBody = await response.Content.ReadAsByteArrayAsync(ct);
 
-            await File.WriteAllBytesAsync(fileName, responseBody, ct);
+        if (!response.IsSuccessStatusCode)
+        {
+            Console.WriteLine($"Error getting token: {Encoding.UTF8.GetString(responseBody)}");
+            return null;
         }
 
         var json = JsonDocument.Parse(responseBody);
         var accessToken = json.RootElement.GetProperty("access_token").GetString();
         return accessToken;
     }
-    
+
     private static async Task CallGraphApi(HttpClient client, string accessToken)
     {
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
