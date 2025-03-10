@@ -25,7 +25,7 @@ stages:
   jobs:
   - job: BuildJob
     pool:
-      vmImage: ubuntu-22.04
+      vmImage: ubuntu-24.04
 
     variables:
     - name: BuildConfiguration
@@ -43,7 +43,7 @@ stages:
       displayName: 'dotnet restore'
       inputs:
           command: restore
-          projects: src/OpenSoft.Tagger/OpenSoft.Tagger.WebApp/OpenSoft.Tagger.WebApp.csproj
+          projects: src/DartWing/DartWing.sln
           vstsFeed: '6848a223-49e7-4d7e-958d-59c7b27a82b8'
 
     - task: DotNetCoreCLI@2
@@ -51,100 +51,10 @@ stages:
       inputs:
           command: publish
           publishWebProjects: false
-          projects: src/OpenSoft.Tagger/OpenSoft.Tagger.WebApp/OpenSoft.Tagger.WebApp.csproj
+          projects: src/DartWing/DartWing.sln
           arguments: '--configuration $(BuildConfiguration) --output $(build.artifactstagingdirectory)'
           zipAfterPublish: false
           vstsFeed: '6848a223-49e7-4d7e-958d-59c7b27a82b8'
 
-    - task: eliostruyf.build-task.custom-build-task.file-creator@4
-      displayName: 'File Creator Dockerfile'
-      inputs:
-          fileoverwrite: true
-          filepath: '$(build.artifactstagingdirectory)/Dockerfile'
-          filecontent: |
-            FROM $(FROM)
-            
-            ENV DOTNET_TieredPGO=1 
-            ENV DOTNET_TC_QuickJitForLoops=1 
-            ENV DOTNET_ReadyToRun=0
-            
-            WORKDIR /app
-            COPY ./OpenSoft.Tagger.WebApp  /app
-            
-            EXPOSE 80 443
-            
-            ENTRYPOINT ["dotnet", "OpenSoft.Tagger.WebApp.dll"]
-
-    - task: Docker@2
-      displayName: 'buildAndPush image'
-      inputs:
-          containerRegistry: dotNetFarheap
-          repository: 'api-tagger-$(Build.SourceBranchName)'
-          Dockerfile: '$(build.artifactstagingdirectory)/Dockerfile'
-          buildContext: '$(build.artifactstagingdirectory)/'
-          tags: |
-            $(Build.BuildId)
-            latest
-
-    - task: PublishBuildArtifacts@1
-      displayName: 'Publish Artifact: api-tagger'
-      inputs:
-          PathtoPublish: '$(Build.ArtifactStagingDirectory)/'
-          ArtifactName: 'api-tagger'
-
-- stage: DEPLOY_QA
-  displayName: DEPLOY QA
-  dependsOn: BUILD
-  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
-  
-  pool: KubePool-qa
-
-  variables: 
-    - name: DB_SERVER_QA
-      value: fhmssql-develop.database.windows.net
-    - name: DATABASE_QA
-      value: tagger-qa
-    - name: DB_USER_QA
-      value: tagger-qa
-    - name: UMURL
-      value: 'https://api-users-qa.farheap.com'  
-    - group: DB-tagger-qa
-    
-  jobs:
-  - job: Deploy
-  
-    steps:
-    - checkout: KubernetesRepository
-
-    - template: deploy.yml@KubernetesRepository
-      parameters:
-        deployAll: 'false'
-        
-        Project: profit
-        ApplicationName: tagger 
-        ApplicationEnvironment: qa
-        #Namespace: tagger
-        
-        #ingress
-        Hosts: 
-          - api-tagger-qa.farheap.com
-        secretName: farheap-tls
-
-        #deployment
-        DeploymentID: $(Build.BuildId)
-        CpuRequest: "0.05"
-        CpuLimit: "0.40"
-        MemoryRequest: "150Mi"
-        MemoryLimit: "400Mi"
-        Image: dotnetfarheapdockerregistry.azurecr.io/api-tagger-$(Build.SourceBranchName):$(Build.BuildId)
-        ImageRegistrySecret: dotnetfarheapdockerregistry
-        Environments: 
-          - name: ConnectionStrings__Tagger
-            value: Data Source=tcp:$(DB_SERVER_QA),1433;Initial Catalog=$(DATABASE_QA);Persist Security Info=False;User ID=$(DB_USER_QA);Password=$(DB-tagger-qa);MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;
-          - name: Authorization__UserManagerUrl
-            value: $(UMURL)
-          - name: PapertrailSettings__HostName
-            value: tagger-qa
-          - name: CorsSettings__CorsOrigins
-            value: https://tagger-qa.farheap.com,http://*:5000,http://*:12345,http://localhost:8080,http://localhost:8081,http://localhost:8082,http://localhost:8083,http://localhost:8084,http://localhost:8085
-            
+    - bash:
+      ls -l $(build.artifactstagingdirectory)
