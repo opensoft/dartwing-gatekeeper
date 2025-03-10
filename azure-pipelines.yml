@@ -56,14 +56,7 @@ stages:
           vstsFeed: '6848a223-49e7-4d7e-958d-59c7b27a82b8'
 
     - bash: |
-        tree $(build.artifactstagingdirectory)
-
-    - task: eliostruyf.build-task.custom-build-task.file-creator@4
-      displayName: 'Create Dockerfile'
-      inputs:
-          fileoverwrite: true
-          filepath: '$(build.artifactstagingdirectory)/Dockerfile'
-          filecontent: |
+        cat > $(build.artifactstagingdirectory)/Dockerfile <<EOF 
             FROM $(FROM)
 
             ENV DOTNET_TieredPGO=1
@@ -76,6 +69,9 @@ stages:
             EXPOSE 80 443
 
             ENTRYPOINT ["dotnet", "DartWing.Web.dll"]
+        EOF
+      displayName: 'create DockerFile'
+    
 
     - task: Docker@2
       displayName: 'buildAndPush image'
