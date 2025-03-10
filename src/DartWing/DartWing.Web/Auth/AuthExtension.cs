@@ -1,3 +1,4 @@
+using DartWing.KeyCloak;
 using DartWing.Web.KeyCloak;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;

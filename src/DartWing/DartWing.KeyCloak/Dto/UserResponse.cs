@@ -7,7 +7,7 @@ public sealed class UserResponse
     public string FirstName { get; set; }
     public string LastName { get; set; }
     public string Email { get; set; }
-    public Dictionary<string, string[]> Attributes { get; set; }
+    public Dictionary<string, string[]> Attributes { get; set; } = new();
 
-    public string? CrmId => Attributes.TryGetValue("CRM_ID", out var value) ? value[0] : null;
+    public string? CrmId => Attributes.TryGetValue("crmID", out var value) ? value[0] : null;
 }

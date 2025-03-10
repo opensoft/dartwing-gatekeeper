@@ -1,4 +1,6 @@
+using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using DartWing.ErpNext.Dto;
 
 namespace DartWing.ErpNext;
@@ -6,37 +8,33 @@ namespace DartWing.ErpNext;
 public sealed class ERPNextService
 {
     private readonly HttpClient _httpClient;
-    private readonly ERPNextSettings _settings;
 
-    public ERPNextService(HttpClient httpClient, ERPNextSettings settings)
+    public ERPNextService(HttpClient httpClient)
     {
         _httpClient = httpClient;
-        _settings = settings;
-
-        _httpClient.DefaultRequestHeaders.Add("Authorization", $"token {settings.ApiKey}:{settings.ApiSecret}");
     }
 
     #region User CRUD
 
-    public async Task<UserResponseDto> CreateUserAsync(UserCreateRequestDto user, CancellationToken ct)
+    public async Task<UserCreateResponseDto> CreateUserAsync(UserCreateRequestDto user, CancellationToken ct)
     {
-        var url = $"{_settings.Url}/api/resource/User";
+        const string url = "/api/resource/User";
         var content = SerializeJson(user);
 
-        using var response = await _httpClient.PostAsync(url, content);
-        return await HandleResponse<UserResponseDto>(response);
+        using var response = await _httpClient.PostAsync(url, content, ct);
+        return await HandleResponse<UserCreateResponseDto>(response);
     }
 
-    public async Task<UserResponseDto> GetUserAsync(string email, CancellationToken ct)
+    public async Task<UserCreateResponseDto> GetUserAsync(string email, CancellationToken ct)
     {
-        var url = $"{_settings.Url}/api/resource/User/{Uri.EscapeDataString(email)}";
+        var url = $"/api/resource/User/{Uri.EscapeDataString(email)}";
         using var response = await _httpClient.GetAsync(url, ct);
-        return await HandleResponse<UserResponseDto>(response);
+        return await HandleResponse<UserCreateResponseDto>(response);
     }
 
     public async Task<UserResponseDto> UpdateUserAsync(string email, object updateData)
     {
-        var url = $"{_settings.Url}/api/resource/User/{Uri.EscapeDataString(email)}";
+        var url = $"/api/resource/User/{Uri.EscapeDataString(email)}";
         var content = SerializeJson(updateData);
 
         using var response = await _httpClient.PutAsync(url, content);
@@ -45,7 +43,7 @@ public sealed class ERPNextService
 
     public async Task<bool> DeleteUserAsync(string email)
     {
-        var url = $"{_settings.Url}/api/resource/User/{Uri.EscapeDataString(email)}";
+        var url = $"/api/resource/User/{Uri.EscapeDataString(email)}";
         using var response = await _httpClient.DeleteAsync(url);
         return response.IsSuccessStatusCode;
     }
@@ -56,14 +54,14 @@ public sealed class ERPNextService
 
     public async Task<RolesResponseDto> GetAllRolesAsync()
     {
-        var url = $"{_settings.Url}/api/resource/Role";
+        const string url = "/api/resource/Role";
         using var response = await _httpClient.GetAsync(url);
         return await HandleResponse<RolesResponseDto>(response);
     }
 
     public async Task<RoleDto> GetRoleAsync(string roleName)
     {
-        var url = $"{_settings.Url}/api/resource/Role/{Uri.EscapeDataString(roleName)}";
+        var url = $"/api/resource/Role/{Uri.EscapeDataString(roleName)}";
         using var response = await _httpClient.GetAsync(url);
         return await HandleResponse<RoleDto>(response);
     }
@@ -73,7 +71,7 @@ public sealed class ERPNextService
     #region Helpers
 
     private static readonly JsonSerializerOptions JsonSerializerOptions =
-        new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+        new() { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull};
     private static ByteArrayContent SerializeJson(object data)
     {
         var json = JsonSerializer.SerializeToUtf8Bytes(data, JsonSerializerOptions);
@@ -89,7 +87,7 @@ public sealed class ERPNextService
             return JsonSerializer.Deserialize<T>(content)!;
         }
 
-        throw new Exception($"API call failed: {response.StatusCode}\n{content}");
+        throw new Exception($"API call failed: {response.StatusCode}\n{Encoding.UTF8.GetString(content)}");
     }
 
     #endregion

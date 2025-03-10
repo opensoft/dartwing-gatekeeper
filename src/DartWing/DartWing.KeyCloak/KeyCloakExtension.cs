@@ -1,3 +1,4 @@
+using DartWing.KeyCloak;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -5,19 +6,19 @@ namespace DartWing.Web.KeyCloak;
 
 public static class KeyCloakExtension
 {
-    public static void AddKeyCloak(this IServiceCollection services,
+    public static IServiceCollection AddKeyCloak(this IServiceCollection services,
         ConfigurationManager configuration)
     {
         services.AddHttpClient("KeyCloak");
+        services.AddHttpClient("KeyCloakKeysClient");
 
-        var auth0Settings = new KeyCloakSettings();
-        configuration.Bind("KeyCloak", auth0Settings);
-        services.AddSingleton(auth0Settings);
+        var settings = new KeyCloakSettings();
+        configuration.Bind("KeyCloak", settings);
+        services.AddSingleton(settings);
 
-        var auth0Services = new ServiceCollection();
-        auth0Services.AddSingleton<AuthServerSecurityKeysHelper>();
-        auth0Services.AddSingleton(auth0Settings);
-        auth0Services.AddHttpClient("KeyCloakKeysClient");
-        auth0Services.AddMemoryCache();
+        services.AddSingleton<AuthServerSecurityKeysHelper>();
+        services.AddMemoryCache();
+        services.AddSingleton<KeyCloakHelper>();
+        return services;
     }
 }

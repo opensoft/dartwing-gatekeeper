@@ -1,11 +1,12 @@
 ﻿using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using DartWing.Web.KeyCloak;
 using DartWing.Web.KeyCloak.Dto;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.IdentityModel.Tokens;
 
-namespace DartWing.Web.KeyCloak;
+namespace DartWing.KeyCloak;
 
 public sealed class AuthServerSecurityKeysHelper
 {
@@ -37,7 +38,7 @@ public sealed class AuthServerSecurityKeysHelper
 public sealed class KeyCloakHelper
 {
     private static readonly JsonSerializerOptions SerializerOptions = new()
-        {DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull};
+        {DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, PropertyNamingPolicy = JsonNamingPolicy.CamelCase};
 
     private readonly IMemoryCache _memoryCache;
     private readonly KeyCloakSettings _settings;
@@ -194,11 +195,16 @@ public sealed class KeyCloakHelper
         var client = _httpClientFactory.CreateClient("KeyCloak");
 
         var url = _settings.GetUserByIdUrl(userId);
+        
+        var user = await Send<UserResponse>(client, url, accessToken, false, ct);
         var userUpdateData = new
         {
+            user.Email,
+            user.FirstName,
+            user.LastName,
             attributes = new
             {
-                CRM_ID = new[] { crmId }
+                crmID = new[] {crmId}
             }
         };
         var resp = await Send(client, HttpMethod.Put, url, accessToken, userUpdateData, ct);
@@ -246,10 +252,8 @@ public sealed class KeyCloakHelper
 
         if (typeof(T) == typeof(bool)) return (T)(object)response.IsSuccessStatusCode;
         
-        response.EnsureSuccessStatusCode();
-        
         var jsonResponse = await response.Content.ReadAsByteArrayAsync(ct).ConfigureAwait(false);
-        var data = JsonSerializer.Deserialize<T>(jsonResponse)!;
+        var data = JsonSerializer.Deserialize<T>(jsonResponse, SerializerOptions)!;
         
         return data;
     }
@@ -262,7 +266,7 @@ public sealed class KeyCloakHelper
             { Headers = { ContentType = MediaTypeHeaderValue.Parse("application/json") } };
         
         using var response = await client.SendAsync(requestMessage, ct).ConfigureAwait(false);
-        if (!response.IsSuccessStatusCode) return (response.IsSuccessStatusCode, "");
+        if (!response.IsSuccessStatusCode) return (response.IsSuccessStatusCode, await response.Content.ReadAsStringAsync(ct));
         if (response.Headers.TryGetValues("location", out var loc))
         {
             var location = loc.FirstOrDefault();
