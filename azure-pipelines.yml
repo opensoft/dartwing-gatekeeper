@@ -41,4 +41,4 @@ stages:
           vstsFeed: '6848a223-49e7-4d7e-958d-59c7b27a82b8'
 
     - bash: |
-        ls -l $(build.artifactstagingdirectory)
+        tree $(build.artifactstagingdirectory)
