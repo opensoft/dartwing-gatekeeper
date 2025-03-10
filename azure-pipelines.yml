@@ -7,14 +7,14 @@ trigger:
 resources:
   repositories:
   - repository: KubernetesRepository
-    endpoint: KubernetesReposGitServiceConnection
+    endpoint: KubernetesReposGitServiceConnection-DartWing
     type: git
     name: Kubernetes/Kubernetes-Master
     ref: refs/heads/devtest
     trigger: none
 
   - repository: KubernetesRepositoryProd
-    endpoint: KubernetesReposGitServiceConnection
+    endpoint: KubernetesReposGitServiceConnection-DartWing
     type: git
     name: Kubernetes/Kubernetes-Master
     ref: refs/heads/prod
