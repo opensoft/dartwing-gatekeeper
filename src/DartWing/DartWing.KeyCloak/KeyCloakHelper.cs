@@ -7,7 +7,7 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace DartWing.Web.KeyCloak;
 
-internal sealed class AuthServerSecurityKeysHelper
+public sealed class AuthServerSecurityKeysHelper
 {
     private readonly IMemoryCache _memoryCache;
     private readonly IHttpClientFactory _httpClientFactory;
@@ -22,19 +22,19 @@ internal sealed class AuthServerSecurityKeysHelper
 
     public async ValueTask<IList<SecurityKey>> GetSecurityKeys(CancellationToken ct = default)
     {
-        if (_memoryCache.TryGetValue("Auth0:GetSigningKeys", out var obj) && obj != null)
+        if (_memoryCache.TryGetValue("KeyCloak:GetSigningKeys", out var obj) && obj != null)
             return (IList<SecurityKey>)obj;
 
-        var client = _httpClientFactory.CreateClient("Auth0SecurityKeysClient");
+        var client = _httpClientFactory.CreateClient("KeyCloakKeysClient");
         var response = await client.GetStringAsync(_settings.GetSigningKeysUrl(), ct).ConfigureAwait(false);
         var keys = new JsonWebKeySet(response).GetSigningKeys();
-        _memoryCache.Set("Auth0:GetSigningKeys", keys, TimeSpan.FromHours(4));
+        _memoryCache.Set("KeyCloak:GetSigningKeys", keys, TimeSpan.FromHours(4));
 
         return keys;
     }
 }
 
-internal sealed class KeyCloakHelper
+public sealed class KeyCloakHelper
 {
     private static readonly JsonSerializerOptions SerializerOptions = new()
         {DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull};
@@ -63,8 +63,8 @@ internal sealed class KeyCloakHelper
             domains = [new OrganizationDomainRepresentation {name = company + ".com"}],
             enabled = true
         };
-        var client = _httpClientFactory.CreateClient("Auth0Client");
-        var response = await Post(client, url, accessToken, org, ct);
+        var client = _httpClientFactory.CreateClient("KeyCloak");
+        var response = await Send(client, HttpMethod.Post, url, accessToken, org, ct);
         return response.Item2;
     }
 
@@ -96,7 +96,7 @@ internal sealed class KeyCloakHelper
     {
         var accessToken = await GetAccessToken(ct);
         var url = _settings.GetUserRolesByUserIdUrl(userId);
-        var client = _httpClientFactory.CreateClient("Auth0Client");
+        var client = _httpClientFactory.CreateClient("KeyCloak");
         var roleRepresentation = await Send<RoleRepresentation>(client, url, accessToken, false, ct);
         return roleRepresentation; //?.ClientMappings.Clients[_settings.ClientId].Mappings.Select(x => x.Name).ToArray() ?? [];
     }
@@ -128,7 +128,7 @@ internal sealed class KeyCloakHelper
         if (existRoles.Length >= roles.Length && existRoles.Intersect(roles).Count() == roles.Length) return true;
         
         var accessToken = await GetAccessToken(ct);
-        var client = _httpClientFactory.CreateClient("Auth0Client");
+        var client = _httpClientFactory.CreateClient("KeyCloak");
         var newRoles = roles.Except(existRoles).ToArray();
         var availableRolesurl = _settings.GetAvailableRolesUrl(userId);
         var availableRoles = await Send<GetRoleRepresentation[]>(client, availableRolesurl, accessToken, false, ct);
@@ -145,7 +145,7 @@ internal sealed class KeyCloakHelper
         
         
         var url = _settings.GetUserRoleMappingUrl(userId);
-        var result = await Post(client, url, accessToken, rolesRepresentations, ct);
+        var result = await Send(client, HttpMethod.Post, url, accessToken, rolesRepresentations, ct);
         
         return result.Item1;
     }
@@ -175,10 +175,40 @@ internal sealed class KeyCloakHelper
         using var responseMessage = await client.SendAsync(requestMessage, ct).ConfigureAwait(false);
         return responseMessage.IsSuccessStatusCode;*/
     }
+    
+    public async Task<UserResponse> GetUserById(string userId, CancellationToken ct)
+    {
+        var accessToken = await GetAccessToken(ct);
+        var client = _httpClientFactory.CreateClient("KeyCloak");
+
+        var url = _settings.GetUserByIdUrl(userId);
+
+        var user = await Send<UserResponse>(client, url, accessToken, false, ct);
+    
+        return user;
+    }
+    
+    public async Task<bool> UpdateUserCrmId(string userId, string crmId, CancellationToken ct)
+    {
+        var accessToken = await GetAccessToken(ct);
+        var client = _httpClientFactory.CreateClient("KeyCloak");
+
+        var url = _settings.GetUserByIdUrl(userId);
+        var userUpdateData = new
+        {
+            attributes = new
+            {
+                CRM_ID = new[] { crmId }
+            }
+        };
+        var resp = await Send(client, HttpMethod.Put, url, accessToken, userUpdateData, ct);
+    
+        return resp.Item1;
+    }
 
     private async ValueTask<string> GetAccessToken(CancellationToken ct)
     {
-        if (_memoryCache.TryGetValue("AuthServer:ApiToken", out var token) && token is not null)
+        if (_memoryCache.TryGetValue("KeyCloak:ApiToken", out var token) && token is not null)
             return (string)token;
         
         var url = _settings.GetTokenUrl();
@@ -193,7 +223,7 @@ internal sealed class KeyCloakHelper
         using var requestMessage = new HttpRequestMessage(HttpMethod.Post, url);
         requestMessage.Content = new FormUrlEncodedContent(tokenRequest);
         
-        var client = _httpClientFactory.CreateClient("Auth0Client");
+        var client = _httpClientFactory.CreateClient("KeyCloak");
         
         using var responseMessage = await client.SendAsync(requestMessage, ct).ConfigureAwait(false);
         responseMessage.EnsureSuccessStatusCode();
@@ -202,7 +232,7 @@ internal sealed class KeyCloakHelper
         var tokenResponse = JsonSerializer.Deserialize<AuthTokenResponse>(body)!;
         
         if (tokenResponse.ExpiresIn > 200)
-            _memoryCache.Set("AuthServer:ApiToken", tokenResponse.AccessToken, TimeSpan.FromSeconds(tokenResponse.ExpiresIn - 150));
+            _memoryCache.Set("KeyCloak:ApiToken", tokenResponse.AccessToken, TimeSpan.FromSeconds(tokenResponse.ExpiresIn - 150));
 
         return tokenResponse.AccessToken;
     }
@@ -224,23 +254,21 @@ internal sealed class KeyCloakHelper
         return data;
     }
     
-    private static async Task<(bool, string)> Post<T>(HttpClient client, string url, string accessToken, T body, CancellationToken ct)
+    private static async Task<(bool, string)> Send<T>(HttpClient client, HttpMethod method, string url, string accessToken, T body, CancellationToken ct)
     {
-        using var requestMessage = new HttpRequestMessage(HttpMethod.Post, url);
+        using var requestMessage = new HttpRequestMessage(method, url);
         requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
         requestMessage.Content = new ByteArrayContent(JsonSerializer.SerializeToUtf8Bytes(body, SerializerOptions))
             { Headers = { ContentType = MediaTypeHeaderValue.Parse("application/json") } };
         
         using var response = await client.SendAsync(requestMessage, ct).ConfigureAwait(false);
-        if (response.IsSuccessStatusCode)
+        if (!response.IsSuccessStatusCode) return (response.IsSuccessStatusCode, "");
+        if (response.Headers.TryGetValues("location", out var loc))
         {
-            if (response.Headers.TryGetValues("location", out var loc))
+            var location = loc.FirstOrDefault();
+            if (!string.IsNullOrEmpty(location) && location.Contains('/'))
             {
-                var location = loc.FirstOrDefault();
-                if (!string.IsNullOrEmpty(location) && location.Contains('/'))
-                {
-                    return (true, location[(location.LastIndexOf('/') + 1)..]);
-                }
+                return (true, location[(location.LastIndexOf('/') + 1)..]);
             }
         }
 

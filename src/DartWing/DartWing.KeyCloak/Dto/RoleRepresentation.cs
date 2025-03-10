@@ -2,7 +2,7 @@
 
 namespace DartWing.Web.KeyCloak.Dto;
 
-internal sealed class RoleRepresentation
+public sealed class RoleRepresentation
 {
     [JsonPropertyName("realmMappings")]
     public List<RoleMapping> RealmMappings { get; set; }

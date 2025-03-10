@@ -3,7 +3,7 @@ using DartWing.ErpNext.Dto;
 
 namespace DartWing.ErpNext;
 
-internal sealed class ERPNextService
+public sealed class ERPNextService
 {
     private readonly HttpClient _httpClient;
     private readonly ERPNextSettings _settings;
@@ -18,7 +18,7 @@ internal sealed class ERPNextService
 
     #region User CRUD
 
-    public async Task<UserResponseDto> CreateUserAsync(UserCreateRequestDto user)
+    public async Task<UserResponseDto> CreateUserAsync(UserCreateRequestDto user, CancellationToken ct)
     {
         var url = $"{_settings.Url}/api/resource/User";
         var content = SerializeJson(user);
@@ -27,10 +27,10 @@ internal sealed class ERPNextService
         return await HandleResponse<UserResponseDto>(response);
     }
 
-    public async Task<UserResponseDto> GetUserAsync(string email)
+    public async Task<UserResponseDto> GetUserAsync(string email, CancellationToken ct)
     {
         var url = $"{_settings.Url}/api/resource/User/{Uri.EscapeDataString(email)}";
-        using var response = await _httpClient.GetAsync(url);
+        using var response = await _httpClient.GetAsync(url, ct);
         return await HandleResponse<UserResponseDto>(response);
     }
 

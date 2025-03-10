@@ -15,4 +15,13 @@
         <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="7.2.0" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="KeyCloak\" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\DartWing.ErpNext\DartWing.ErpNext.csproj" />
+      <ProjectReference Include="..\DartWing.KeyCloak\DartWing.KeyCloak.csproj" />
+    </ItemGroup>
+
 </Project>

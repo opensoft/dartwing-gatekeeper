@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using DartWing.Web.Api;
 using DartWing.Web.Auth;
+using DartWing.Web.KeyCloak;
 using DartWing.Web.Users;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.OpenApi.Models;
@@ -78,6 +79,7 @@ builder.Services.Configure<JsonOptions>(options =>
 });
 
 builder.Services.AddAuthenticationLogic(builder.Configuration);
+builder.Services.AddKeyCloak(builder.Configuration);
 
 var app = builder.Build();
 

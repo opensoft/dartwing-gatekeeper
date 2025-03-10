@@ -4,6 +4,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DartWing.Web", "DartWing.We
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DartWing.ErpNext", "DartWing.ErpNext\DartWing.ErpNext.csproj", "{C4F4510F-3B30-410B-87C9-C75E3E29380E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DartWing.KeyCloak", "DartWing.KeyCloak\DartWing.KeyCloak.csproj", "{D6A7268F-467F-46A7-A814-175658D753CB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +20,9 @@ Global
 		{C4F4510F-3B30-410B-87C9-C75E3E29380E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C4F4510F-3B30-410B-87C9-C75E3E29380E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C4F4510F-3B30-410B-87C9-C75E3E29380E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D6A7268F-467F-46A7-A814-175658D753CB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D6A7268F-467F-46A7-A814-175658D753CB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D6A7268F-467F-46A7-A814-175658D753CB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D6A7268F-467F-46A7-A814-175658D753CB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

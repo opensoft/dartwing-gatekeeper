@@ -2,7 +2,7 @@
 
 namespace DartWing.Web.KeyCloak;
 
-internal sealed class KeyCloakSettings
+public sealed class KeyCloakSettings
 {
     [JsonPropertyName("Domain")]
     public string Domain { get; set; }
@@ -29,5 +29,6 @@ internal sealed class KeyCloakSettings
     public string GetUserRolesByUserIdUrl(string userId)=> $"https://{Domain}/admin/realms/{RealmName}/users/{userId}/role-mappings";
     public string GetUserRoleMappingUrl(string userId)=> $"https://{Domain}/admin/realms/{RealmName}/users/{userId}/role-mappings/clients/{ClientGuid}";
     public string GetAvailableRolesUrl(string userId)=> $"https://{Domain}/admin/realms/{RealmName}/ui-ext/available-roles/users/{userId}?first=0&max=100";
+    public string GetUserByIdUrl(string userId)=> $"https://{Domain}/admin/realms/{RealmName}/users/{userId}";
     
 }
