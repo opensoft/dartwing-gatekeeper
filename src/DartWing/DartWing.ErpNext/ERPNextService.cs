@@ -71,7 +71,11 @@ public sealed class ERPNextService
     #region Helpers
 
     private static readonly JsonSerializerOptions JsonSerializerOptions =
-        new() { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull};
+        new()
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+            Converters = { new CustomDateTimeConverter() }
+        };
     private static ByteArrayContent SerializeJson(object data)
     {
         var json = JsonSerializer.SerializeToUtf8Bytes(data, JsonSerializerOptions);
@@ -80,14 +84,15 @@ public sealed class ERPNextService
 
     private static async Task<T> HandleResponse<T>(HttpResponseMessage response)
     {
-        var content = await response.Content.ReadAsByteArrayAsync();
+        var content = await response.Content.ReadAsStringAsync();//.ReadAsByteArrayAsync();
 
         if (response.IsSuccessStatusCode)
         {
-            return JsonSerializer.Deserialize<T>(content)!;
+            var result = JsonSerializer.Deserialize<T>(content, JsonSerializerOptions)!;
+            return result;
         }
 
-        throw new Exception($"API call failed: {response.StatusCode}\n{Encoding.UTF8.GetString(content)}");
+        throw new Exception($"API call failed: {response.StatusCode}\n{content}");
     }
 
     #endregion

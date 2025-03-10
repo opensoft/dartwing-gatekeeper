@@ -24,7 +24,8 @@ public sealed class ERPNextServiceTests
             Phone = Random.Shared.NextInt64().ToString(),
             MobileNo = Random.Shared.NextInt64().ToString(),
             ZipCode = "12345",
-            Roles = [new UserRoleDto { Role = "Guest" }]
+            Roles = [new UserRoleDto { Role = "Guest" }],
+            SendWelcomeEmail = 0
         };
 
         var newUserData = await service.CreateUserAsync(u, CancellationToken.None);
