@@ -42,3 +42,39 @@ stages:
 
     - bash: |
         tree $(build.artifactstagingdirectory)
+
+    - task: eliostruyf.build-task.custom-build-task.file-creator@4
+      displayName: 'Create Dockerfile'
+      inputs:
+          fileoverwrite: true
+          filepath: '$(build.artifactstagingdirectory)/Dockerfile'
+          filecontent: |
+            FROM $(FROM)
+
+            ENV DOTNET_TieredPGO=1
+            ENV DOTNET_TC_QuickJitForLoops=1
+            ENV DOTNET_ReadyToRun=0
+
+            WORKDIR /app
+            COPY ./DartWing /app
+
+            EXPOSE 80 443
+
+            ENTRYPOINT ["dotnet", "DartWing.Web.dll"]
+
+    - task: Docker@2
+      displayName: 'buildAndPush image'
+      inputs:
+          containerRegistry: dotNetFarheap
+          repository: 'DartWing-Service-$(Build.SourceBranchName)'
+          Dockerfile: '$(build.artifactstagingdirectory)/Dockerfile'
+          buildContext: '$(build.artifactstagingdirectory)/'
+          tags: |
+            $(Build.BuildId)
+            latest
+
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish Artifact: DartWing-Service'
+      inputs:
+          PathtoPublish: '$(Build.ArtifactStagingDirectory)/'
+          ArtifactName: 'dartwing-service'   
