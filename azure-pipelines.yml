@@ -4,6 +4,22 @@ trigger:
 #- main
 - none
 
+resources:
+  repositories:
+  - repository: KubernetesRepository
+    endpoint: KubernetesReposGitServiceConnection
+    type: git
+    name: Kubernetes/Kubernetes-Master
+    ref: refs/heads/devtest
+    trigger: none
+
+  - repository: KubernetesRepositoryProd
+    endpoint: KubernetesReposGitServiceConnection
+    type: git
+    name: Kubernetes/Kubernetes-Master
+    ref: refs/heads/prod
+    trigger: none
+
 stages:
 - stage: BUILD
   jobs:
@@ -66,7 +82,7 @@ stages:
       displayName: 'buildAndPush image'
       inputs:
           containerRegistry: dotNetFarheap
-          repository: 'DartWing-Service-$(Build.SourceBranchName)'
+          repository: 'dartwing-service-$(Build.SourceBranchName)'
           Dockerfile: '$(build.artifactstagingdirectory)/Dockerfile'
           buildContext: '$(build.artifactstagingdirectory)/'
           tags: |
@@ -78,3 +94,41 @@ stages:
       inputs:
           PathtoPublish: '$(Build.ArtifactStagingDirectory)/'
           ArtifactName: 'dartwing-service'   
+
+- stage: DEPLOY_QA
+  displayName: DEPLOY QA
+  dependsOn: BUILD
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+  
+  pool: KubePool-qa
+
+  variables: 
+    
+  jobs:
+  - job: Deploy
+  
+    steps:
+    - checkout: KubernetesRepository
+
+    - template: deploy.yml@KubernetesRepository
+      parameters:
+        deployAll: 'false'
+        
+        Project: dartwing
+        ApplicationName: dartwing-service 
+        ApplicationEnvironment: qa
+        Namespace: dartwing-service
+        
+        #ingress
+        Hosts: 
+          - dartwing.tech-corps.com
+        secretName: tech-corps-tls
+
+        #deployment
+        DeploymentID: $(Build.BuildId)
+        CpuRequest: "0.05"
+        CpuLimit: "0.40"
+        MemoryRequest: "150Mi"
+        MemoryLimit: "400Mi"
+        Image: dotnetfarheapdockerregistry.azurecr.io/dartwing-service-$(Build.SourceBranchName):$(Build.BuildId)
+        ImageRegistrySecret: dotnetfarheapdockerregistry
