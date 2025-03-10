@@ -1,8 +1,7 @@
 name: $(Date:yyyyMMdd).$(Rev:r)
 
 trigger:
-#- main
-- none
+- main
 
 resources:
   repositories:
