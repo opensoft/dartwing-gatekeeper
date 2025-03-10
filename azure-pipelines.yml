@@ -130,3 +130,6 @@ stages:
         MemoryLimit: "400Mi"
         Image: dotnetfarheapdockerregistry.azurecr.io/dartwing-service-$(Build.SourceBranchName):$(Build.BuildId)
         ImageRegistrySecret: dotnetfarheapdockerregistry
+        Environments: 
+          - name: ASPNETCORE_HTTP_PORTS
+            value: 80
