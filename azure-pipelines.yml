@@ -110,7 +110,7 @@ stages:
 
     - template: deploy.yml@KubernetesRepository
       parameters:
-        deployAll: 'false'
+        deployAll: 'true'
         
         Project: dartwing
         ApplicationName: dartwing-service 
