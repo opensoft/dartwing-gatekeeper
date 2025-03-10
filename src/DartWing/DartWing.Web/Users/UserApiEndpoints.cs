@@ -40,6 +40,8 @@ public static  class UserApiEndpoints
             };
             var erpUser = await erpNextService.CreateUserAsync(dto, ct);
             
+            //keyCloakHelper.UpdateUserCrmId(userId, erpUser.Data.)
+            
             return Results.Ok(erpUser);
         }).WithName("CreateUser").WithSummary("Create user");
 

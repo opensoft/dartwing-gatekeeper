@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Runtime.Versioning;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using DartWing.ErpNext;
 using DartWing.Web.Api;
 using DartWing.Web.Auth;
 using DartWing.Web.KeyCloak;
@@ -80,6 +81,7 @@ builder.Services.Configure<JsonOptions>(options =>
 
 builder.Services.AddAuthenticationLogic(builder.Configuration);
 builder.Services.AddKeyCloak(builder.Configuration);
+builder.Services.AddDartWing(builder.Configuration);
 
 var app = builder.Build();
 
