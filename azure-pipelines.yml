@@ -4,22 +4,6 @@ trigger:
 #- main
 - none
 
-resources:
-  repositories:
-  - repository: KubernetesRepository
-#    endpoint: KubernetesReposGitServiceConnection
-    type: git
-    name: Kubernetes/Kubernetes-Master
-    ref: refs/heads/devtest
-    trigger: none
-
-  - repository: KubernetesRepositoryProd
-#    endpoint: KubernetesReposGitServiceConnection
-    type: git
-    name: Kubernetes/Kubernetes-Master
-    ref: refs/heads/prod
-    trigger: none
-
 stages:
 - stage: BUILD
   jobs:
