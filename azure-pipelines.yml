@@ -102,8 +102,6 @@ stages:
   
   pool: KubePool-qa
 
-  variables: 
-    
   jobs:
   - job: Deploy
   
