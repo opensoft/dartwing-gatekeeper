@@ -7,6 +7,7 @@ using DartWing.ErpNext;
 using DartWing.Web.Api;
 using DartWing.Web.Auth;
 using DartWing.Web.KeyCloak;
+using DartWing.Web.Logging;
 using DartWing.Web.Users;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.OpenApi.Models;
@@ -15,6 +16,7 @@ var sw = Stopwatch.StartNew();
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.AddLogging();
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();

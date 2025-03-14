@@ -56,7 +56,7 @@ public static  class UserApiEndpoints
             var keyCloakUser = await keyCloakHelper.GetUserById(userId, ct);
             if (string.IsNullOrEmpty(keyCloakUser.Email)) return Results.NotFound();
             var existErpUser = await erpNextService.GetUserAsync(keyCloakUser.Email, ct);
-            if (existErpUser == null) return Results.NotFound();
+            if (existErpUser != null) return Results.NotFound();
             return Results.Ok(existErpUser);
         }).WithName("User").WithSummary("Get user").Produces<UserInfoRequest>();
     }
