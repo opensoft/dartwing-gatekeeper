@@ -16,7 +16,7 @@ public sealed class ERPNextService
 
     #region User CRUD
 
-    public async Task<UserCreateResponseDto> CreateUserAsync(UserCreateRequestDto user, CancellationToken ct)
+    public async Task<UserCreateResponseDto?> CreateUserAsync(UserCreateRequestDto user, CancellationToken ct)
     {
         const string url = "/api/resource/User";
         var content = SerializeJson(user);
@@ -25,7 +25,7 @@ public sealed class ERPNextService
         return await HandleResponse<UserCreateResponseDto>(response);
     }
 
-    public async Task<UserCreateResponseDto> GetUserAsync(string email, CancellationToken ct)
+    public async Task<UserCreateResponseDto?> GetUserAsync(string email, CancellationToken ct)
     {
         var url = $"/api/resource/User/{Uri.EscapeDataString(email)}";
         using var response = await _httpClient.GetAsync(url, ct);
@@ -38,7 +38,7 @@ public sealed class ERPNextService
         var content = SerializeJson(updateData);
 
         using var response = await _httpClient.PutAsync(url, content);
-        return await HandleResponse<UserResponseDto>(response);
+        return (await HandleResponse<UserResponseDto>(response))!;
     }
 
     public async Task<bool> DeleteUserAsync(string email)
@@ -82,7 +82,7 @@ public sealed class ERPNextService
         return new ByteArrayContent(json);
     }
 
-    private static async Task<T> HandleResponse<T>(HttpResponseMessage response)
+    private static async Task<T?> HandleResponse<T>(HttpResponseMessage response) where T : class
     {
         var content = await response.Content.ReadAsStringAsync();//.ReadAsByteArrayAsync();
 
@@ -92,7 +92,7 @@ public sealed class ERPNextService
             return result;
         }
 
-        throw new Exception($"API call failed: {response.StatusCode}\n{content}");
+        return null;
     }
 
     #endregion

@@ -15,7 +15,7 @@ public static  class UserApiEndpoints
 
         group.MapPost("", async ([FromBody] UserInfoRequest user,
             [FromServices] IHttpClientFactory httpClientFactory,
-            [FromServices] HttpContextAccessor httpContextAccessor,
+            [FromServices] IHttpContextAccessor httpContextAccessor,
             [FromServices] KeyCloakHelper keyCloakHelper,
             [FromServices] ERPNextService erpNextService,
             CancellationToken ct) =>
@@ -46,7 +46,7 @@ public static  class UserApiEndpoints
         }).WithName("CreateUser").WithSummary("Create user");
 
         group.MapGet("", async ([FromServices] IHttpClientFactory httpClientFactory,
-            [FromServices] HttpContextAccessor httpContextAccessor,
+            [FromServices] IHttpContextAccessor httpContextAccessor,
             [FromServices] KeyCloakHelper keyCloakHelper,
             [FromServices] ERPNextService erpNextService,
             CancellationToken ct) =>
@@ -54,8 +54,9 @@ public static  class UserApiEndpoints
             var u = httpContextAccessor.HttpContext!.User;
             var userId = u.FindFirst("sub")?.Value;
             var keyCloakUser = await keyCloakHelper.GetUserById(userId, ct);
-            if (keyCloakUser.CrmId == null) return Results.NotFound();
-            var existErpUser = await erpNextService.GetUserAsync(keyCloakUser.CrmId, ct);
+            if (string.IsNullOrEmpty(keyCloakUser.Email)) return Results.NotFound();
+            var existErpUser = await erpNextService.GetUserAsync(keyCloakUser.Email, ct);
+            if (existErpUser == null) return Results.NotFound();
             return Results.Ok(existErpUser);
         }).WithName("User").WithSummary("Get user").Produces<UserInfoRequest>();
     }
