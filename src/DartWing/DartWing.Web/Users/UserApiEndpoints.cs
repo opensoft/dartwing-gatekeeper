@@ -24,7 +24,7 @@ public static  class UserApiEndpoints
             logger.LogInformation("API Create user {email}", user.Email);
             var u = httpContextAccessor.HttpContext?.User;
             var userId = u?.FindFirst("sub")?.Value;
-            if (userId == null) return Results.Unauthorized();
+            if (userId == null) return Results.BadRequest("User id is null");
             var keyCloakUser = await keyCloakHelper.GetUserById(userId, ct);
             if (keyCloakUser == null) return Results.Conflict("KeyCloak user not found");
             var existErpUser = await erpNextService.GetUserAsync(keyCloakUser.Email, ct);
@@ -52,11 +52,11 @@ public static  class UserApiEndpoints
             [FromServices] ERPNextService erpNextService,
             CancellationToken ct) =>
         {
-            logger.LogInformation("API Get user");
             var sw = Stopwatch.GetTimestamp();
             if (logger.IsEnabled(LogLevel.Debug)) logger.LogDebug("Get user");
             var u = httpContextAccessor.HttpContext!.User;
             var userId = u.FindFirst("sub")?.Value;
+            if (userId == null) return Results.BadRequest("User id is null");
             var keyCloakUser = await keyCloakHelper.GetUserById(userId, ct);
             var existErpUser = await erpNextService.GetUserAsync(keyCloakUser.Email, ct);
             if (existErpUser == null)
