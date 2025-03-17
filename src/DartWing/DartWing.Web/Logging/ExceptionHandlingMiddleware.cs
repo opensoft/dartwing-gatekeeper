@@ -5,14 +5,10 @@ namespace DartWing.Web.Logging;
 public sealed class ExceptionHandlingMiddleware
 {
     private readonly RequestDelegate _next;
-    private readonly ILogger<ExceptionHandlingMiddleware> _logger;
 
-    public ExceptionHandlingMiddleware(
-        RequestDelegate next,
-        ILogger<ExceptionHandlingMiddleware> logger)
+    public ExceptionHandlingMiddleware(RequestDelegate next)
     {
         _next = next;
-        _logger = logger;
     }
 
     public async Task InvokeAsync(HttpContext context)
@@ -23,13 +19,15 @@ public sealed class ExceptionHandlingMiddleware
         }
         catch (Exception exception)
         {
-            _logger.LogError(
+            var logger = context.RequestServices.GetService<ILogger<ExceptionHandlingMiddleware>>()!;
+            logger.LogError(
                 exception, "Exception occurred: {Message}", exception.Message);
 
             var problemDetails = new ProblemDetails
             {
                 Status = StatusCodes.Status500InternalServerError,
-                Title = "Server Error"
+                Title = "Server Error",
+                Detail = logger.IsEnabled(LogLevel.Debug) ? exception.ToString() : null
             };
 
             context.Response.StatusCode =

@@ -44,6 +44,38 @@ public static  class UserApiEndpoints
             var erpUser = await erpNextService.CreateUserAsync(dto, ct);
             return Results.Ok(erpUser);
         }).WithName("CreateUser").WithSummary("Create user");
+        
+        group.MapPut("", async ([FromBody] UserInfoRequest user,
+            [FromServices] ILogger<Program> logger,
+            [FromServices] IHttpClientFactory httpClientFactory,
+            [FromServices] IHttpContextAccessor httpContextAccessor,
+            [FromServices] KeyCloakHelper keyCloakHelper,
+            [FromServices] ERPNextService erpNextService,
+            CancellationToken ct) =>
+        {
+            logger.LogInformation("API Update user {email}", user.Email);
+            var u = httpContextAccessor.HttpContext?.User;
+            var userId = u?.FindFirst("sub")?.Value;
+            if (userId == null) return Results.BadRequest("User id is null");
+            var keyCloakUser = await keyCloakHelper.GetUserById(userId, ct);
+            if (keyCloakUser == null) return Results.Conflict("KeyCloak user not found");
+            var existErpUser = await erpNextService.GetUserAsync(keyCloakUser.Email, ct);
+            if (existErpUser == null)
+                return Results.Conflict("erpNext user not found");
+
+            var dto = new UserCreateRequestDto
+            {
+                Email = user.Email,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Phone = user.PhoneNumber,
+                Address = user.Address,
+                Country = user.Country,
+                ZipCode = user.PostalCode
+            };
+            var erpUser = await erpNextService.UpdateUserAsync(user.Email, dto, ct);
+            return Results.Ok(erpUser);
+        }).WithName("UpdateUser").WithSummary("Update user");
 
         group.MapGet("", async ([FromServices] IHttpClientFactory httpClientFactory,
             [FromServices] ILogger<Program> logger,

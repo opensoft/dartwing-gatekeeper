@@ -38,7 +38,7 @@ public sealed class ERPNextService
         return await HandleResponse<UserCreateResponseDto>(response, sw, ct);
     }
 
-    public async Task<UserResponseDto?> UpdateUserAsync(string email, object updateData, CancellationToken ct)
+    public async Task<UserResponseDto?> UpdateUserAsync(string email, UserCreateRequestDto updateData, CancellationToken ct)
     {
         var sw = Stopwatch.GetTimestamp();
         var url = $"/api/resource/User/{Uri.EscapeDataString(email)}";
