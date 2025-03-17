@@ -38,11 +38,15 @@ public static  class UserApiEndpoints
                 Country = user.Country,
                 ZipCode = user.PostalCode
             };
-            var erpUser = await erpNextService.CreateUserAsync(dto, ct);
-            
-            //keyCloakHelper.UpdateUserCrmId(userId, erpUser.Data.)
-            
-            return Results.Ok(erpUser);
+            try
+            {
+                var erpUser = await erpNextService.CreateUserAsync(dto, ct);
+                return Results.Ok(erpUser);
+            }
+            catch (Exception e)
+            {
+                return Results.InternalServerError(e);
+            }
         }).WithName("CreateUser").WithSummary("Create user");
 
         group.MapGet("", async ([FromServices] IHttpClientFactory httpClientFactory,
