@@ -14,12 +14,14 @@ public static  class UserApiEndpoints
         var group = endpoints.MapGroup("api/user/").WithTags("User");
 
         group.MapPost("", async ([FromBody] UserInfoRequest user,
+            [FromServices] ILogger<Program> logger,
             [FromServices] IHttpClientFactory httpClientFactory,
             [FromServices] IHttpContextAccessor httpContextAccessor,
             [FromServices] KeyCloakHelper keyCloakHelper,
             [FromServices] ERPNextService erpNextService,
             CancellationToken ct) =>
         {
+            logger.LogInformation("API Create user {email}", user.Email);
             var u = httpContextAccessor.HttpContext?.User;
             var userId = u?.FindFirst("sub")?.Value;
             if (userId == null) return Results.Unauthorized();
@@ -50,8 +52,9 @@ public static  class UserApiEndpoints
             [FromServices] ERPNextService erpNextService,
             CancellationToken ct) =>
         {
+            logger.LogInformation("API Get user");
             var sw = Stopwatch.GetTimestamp();
-            if (logger.IsEnabled(LogLevel.Debug)) logger.LogDebug("Create user");
+            if (logger.IsEnabled(LogLevel.Debug)) logger.LogDebug("Get user");
             var u = httpContextAccessor.HttpContext!.User;
             var userId = u.FindFirst("sub")?.Value;
             var keyCloakUser = await keyCloakHelper.GetUserById(userId, ct);
