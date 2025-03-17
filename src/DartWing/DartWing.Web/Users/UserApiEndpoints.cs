@@ -20,14 +20,14 @@ public static  class UserApiEndpoints
             [FromServices] ERPNextService erpNextService,
             CancellationToken ct) =>
         {
-            var u = httpContextAccessor.HttpContext!.User;
-            var userId = u.FindFirst("sub")?.Value;
+            var u = httpContextAccessor.HttpContext?.User;
+            var userId = u?.FindFirst("sub")?.Value;
+            if (userId == null) return Results.Unauthorized();
             var keyCloakUser = await keyCloakHelper.GetUserById(userId, ct);
-            if (keyCloakUser.CrmId != null)
-            {
-                var existErpUser = await erpNextService.GetUserAsync(keyCloakUser.CrmId, ct);
-                return Results.Ok(existErpUser);
-            }
+            if (keyCloakUser == null) return Results.Conflict("KeyCloak user not found");
+            var existErpUser = await erpNextService.GetUserAsync(keyCloakUser.Email, ct);
+            if (existErpUser != null)
+                return Results.Conflict("erpNext user already exists");
 
             var dto = new UserCreateRequestDto
             {
