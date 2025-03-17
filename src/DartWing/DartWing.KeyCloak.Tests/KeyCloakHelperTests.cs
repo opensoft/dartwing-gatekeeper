@@ -1,4 +1,5 @@
 ﻿using DartWing.Web.KeyCloak;
+using DartWing.Web.KeyCloak.Dto;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 

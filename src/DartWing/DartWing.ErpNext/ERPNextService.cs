@@ -1,16 +1,20 @@
+using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using DartWing.ErpNext.Dto;
+using Microsoft.Extensions.Logging;
 
 namespace DartWing.ErpNext;
 
 public sealed class ERPNextService
 {
+    private readonly ILogger<ERPNextService> _logger;
     private readonly HttpClient _httpClient;
 
-    public ERPNextService(HttpClient httpClient)
+    public ERPNextService(ILogger<ERPNextService> logger, HttpClient httpClient)
     {
+        _logger = logger;
         _httpClient = httpClient;
     }
 
@@ -18,33 +22,37 @@ public sealed class ERPNextService
 
     public async Task<UserCreateResponseDto?> CreateUserAsync(UserCreateRequestDto user, CancellationToken ct)
     {
+        var sw = Stopwatch.GetTimestamp();
         const string url = "/api/resource/User";
         var content = SerializeJson(user);
 
         using var response = await _httpClient.PostAsync(url, content, ct);
-        return await HandleResponse<UserCreateResponseDto>(response);
+        return await HandleResponse<UserCreateResponseDto>(response, sw, ct);
     }
 
     public async Task<UserCreateResponseDto?> GetUserAsync(string email, CancellationToken ct)
     {
+        var sw = Stopwatch.GetTimestamp();
         var url = $"/api/resource/User/{Uri.EscapeDataString(email)}";
         using var response = await _httpClient.GetAsync(url, ct);
-        return await HandleResponse<UserCreateResponseDto>(response);
+        return await HandleResponse<UserCreateResponseDto>(response, sw, ct);
     }
 
-    public async Task<UserResponseDto> UpdateUserAsync(string email, object updateData)
+    public async Task<UserResponseDto?> UpdateUserAsync(string email, object updateData, CancellationToken ct)
     {
+        var sw = Stopwatch.GetTimestamp();
         var url = $"/api/resource/User/{Uri.EscapeDataString(email)}";
         var content = SerializeJson(updateData);
 
-        using var response = await _httpClient.PutAsync(url, content);
-        return (await HandleResponse<UserResponseDto>(response))!;
+        using var response = await _httpClient.PutAsync(url, content, ct);
+        return await HandleResponse<UserResponseDto>(response, sw, ct);
     }
 
-    public async Task<bool> DeleteUserAsync(string email)
+    public async Task<bool> DeleteUserAsync(string email, CancellationToken ct)
     {
+        var sw = Stopwatch.GetTimestamp();
         var url = $"/api/resource/User/{Uri.EscapeDataString(email)}";
-        using var response = await _httpClient.DeleteAsync(url);
+        using var response = await _httpClient.DeleteAsync(url, ct);
         return response.IsSuccessStatusCode;
     }
 
@@ -52,18 +60,20 @@ public sealed class ERPNextService
 
     #region Role CRUD
 
-    public async Task<RolesResponseDto> GetAllRolesAsync()
+    public async Task<RolesResponseDto?> GetAllRolesAsync(CancellationToken ct)
     {
+        var sw = Stopwatch.GetTimestamp();
         const string url = "/api/resource/Role";
-        using var response = await _httpClient.GetAsync(url);
-        return await HandleResponse<RolesResponseDto>(response);
+        using var response = await _httpClient.GetAsync(url, ct);
+        return await HandleResponse<RolesResponseDto>(response, sw, ct);
     }
 
-    public async Task<RoleDto> GetRoleAsync(string roleName)
+    public async Task<RoleDto?> GetRoleAsync(string roleName, CancellationToken ct)
     {
+        var sw = Stopwatch.GetTimestamp();
         var url = $"/api/resource/Role/{Uri.EscapeDataString(roleName)}";
-        using var response = await _httpClient.GetAsync(url);
-        return await HandleResponse<RoleDto>(response);
+        using var response = await _httpClient.GetAsync(url, ct);
+        return await HandleResponse<RoleDto>(response, sw, ct);
     }
 
     #endregion
@@ -82,17 +92,41 @@ public sealed class ERPNextService
         return new ByteArrayContent(json);
     }
 
-    private static async Task<T?> HandleResponse<T>(HttpResponseMessage response) where T : class
+    private async Task<T?> HandleResponse<T>(HttpResponseMessage response, long timestamp, CancellationToken ct)
+        where T : class
     {
-        var content = await response.Content.ReadAsStringAsync();//.ReadAsByteArrayAsync();
-
-        if (response.IsSuccessStatusCode)
+        if (!response.IsSuccessStatusCode)
         {
-            var result = JsonSerializer.Deserialize<T>(content, JsonSerializerOptions)!;
-            return result;
+            var contentString = await response.Content.ReadAsStringAsync(ct);
+            var request = response.RequestMessage?.Content != null
+                ? await response.RequestMessage!.Content.ReadAsStringAsync(ct)
+                : "";
+            _logger.LogWarning("erpNext {type} {url} code={r} response={b} request={req} {sw}", response.RequestMessage?.Method.Method,
+                response.RequestMessage?.RequestUri?.AbsoluteUri, response.StatusCode, contentString, request,
+                Stopwatch.GetElapsedTime(timestamp));
+
+            return null;
         }
 
-        return null;
+        var content = await response.Content.ReadAsByteArrayAsync(ct);
+        if (_logger.IsEnabled(LogLevel.Debug))
+        {
+            var request = response.RequestMessage?.Content != null
+                ? await response.RequestMessage!.Content.ReadAsStringAsync(ct)
+                : "";
+            _logger.LogDebug("erpNext {type} {url} code={r} response={b} request={req} {sw}", response.RequestMessage?.Method.Method,
+                response.RequestMessage?.RequestUri?.AbsoluteUri, response.StatusCode, Encoding.UTF8.GetString(content),
+                request, Stopwatch.GetElapsedTime(timestamp));
+        }
+        else
+        {
+            _logger.LogInformation("erpNext {type} {url} code={r} {sw}", response.RequestMessage?.Method.Method,
+                response.RequestMessage?.RequestUri?.AbsoluteUri, response.StatusCode,
+                Stopwatch.GetElapsedTime(timestamp));
+        }
+
+        var result = JsonSerializer.Deserialize<T>(content, JsonSerializerOptions)!;
+        return result;
     }
 
     #endregion

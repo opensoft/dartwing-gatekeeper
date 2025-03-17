@@ -1,9 +1,12 @@
-﻿using System.Net.Http.Headers;
+﻿using System.Diagnostics;
+using System.Net.Http.Headers;
+using System.Net.Mime;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using DartWing.Web.KeyCloak;
 using DartWing.Web.KeyCloak.Dto;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 
 namespace DartWing.KeyCloak;
@@ -40,13 +43,15 @@ public sealed class KeyCloakHelper
     private static readonly JsonSerializerOptions SerializerOptions = new()
         {DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, PropertyNamingPolicy = JsonNamingPolicy.CamelCase};
 
+    private readonly ILogger<KeyCloakHelper> _logger;
     private readonly IMemoryCache _memoryCache;
     private readonly KeyCloakSettings _settings;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly SemaphoreSlim _lock = new(1);
 
-    public KeyCloakHelper(IHttpClientFactory httpClientFactory, IMemoryCache memoryCache, KeyCloakSettings settings)
+    public KeyCloakHelper(ILogger<KeyCloakHelper> logger, IHttpClientFactory httpClientFactory, IMemoryCache memoryCache, KeyCloakSettings settings)
     {
+        _logger = logger;
         _memoryCache = memoryCache;
         _settings = settings;
         _httpClientFactory = httpClientFactory;
@@ -93,7 +98,7 @@ public sealed class KeyCloakHelper
         // return await Send<bool>(url, accessToken, true, ct);
     }
 
-    public async Task<RoleRepresentation> GetRoleRepresentationForUser(string userId, CancellationToken ct)
+    public async Task<RoleRepresentation?> GetRoleRepresentationForUser(string userId, CancellationToken ct)
     {
         var accessToken = await GetAccessToken(ct);
         var url = _settings.GetUserRolesByUserIdUrl(userId);
@@ -177,14 +182,17 @@ public sealed class KeyCloakHelper
         return responseMessage.IsSuccessStatusCode;*/
     }
     
-    public async Task<UserResponse> GetUserById(string userId, CancellationToken ct)
+    public async Task<UserResponse?> GetUserById(string userId, CancellationToken ct)
     {
+        var sw = Stopwatch.GetTimestamp();
         var accessToken = await GetAccessToken(ct);
         var client = _httpClientFactory.CreateClient("KeyCloak");
 
         var url = _settings.GetUserByIdUrl(userId);
 
         var user = await Send<UserResponse>(client, url, accessToken, false, ct);
+        
+        _logger.LogInformation("KeyCloak get user by id {id} {u}", userId, user.Email);
     
         return user;
     }
@@ -216,7 +224,8 @@ public sealed class KeyCloakHelper
     {
         if (_memoryCache.TryGetValue("KeyCloak:ApiToken", out var token) && token is not null)
             return (string)token;
-        
+
+        var sw = Stopwatch.GetTimestamp();
         var url = _settings.GetTokenUrl();
 
         var tokenRequest = new Dictionary<string, string>
@@ -228,52 +237,92 @@ public sealed class KeyCloakHelper
 
         using var requestMessage = new HttpRequestMessage(HttpMethod.Post, url);
         requestMessage.Content = new FormUrlEncodedContent(tokenRequest);
-        
+
         var client = _httpClientFactory.CreateClient("KeyCloak");
-        
+
         using var responseMessage = await client.SendAsync(requestMessage, ct).ConfigureAwait(false);
         responseMessage.EnsureSuccessStatusCode();
 
         var body = await responseMessage.Content.ReadAsByteArrayAsync(ct).ConfigureAwait(false);
         var tokenResponse = JsonSerializer.Deserialize<AuthTokenResponse>(body)!;
-        
+
         if (tokenResponse.ExpiresIn > 200)
-            _memoryCache.Set("KeyCloak:ApiToken", tokenResponse.AccessToken, TimeSpan.FromSeconds(tokenResponse.ExpiresIn - 150));
+            _memoryCache.Set("KeyCloak:ApiToken", tokenResponse.AccessToken,
+                TimeSpan.FromSeconds(tokenResponse.ExpiresIn - 150));
+
+        _logger.LogInformation("KeyCloak get {type} token for client={cl} expIn={ex}sec {sw}", tokenResponse.TokenType,
+            _settings.ClientId, tokenResponse.ExpiresIn, Stopwatch.GetElapsedTime(sw));
 
         return tokenResponse.AccessToken;
     }
 
-    private static async Task<T> Send<T>(HttpClient client, string url, string accessToken, bool delete, CancellationToken ct)
+    private async Task<T?> Send<T>(HttpClient client, string url, string accessToken, bool delete, CancellationToken ct)
     {
+        var sw = Stopwatch.GetTimestamp();
         using var requestMessage = new HttpRequestMessage(delete ? HttpMethod.Delete : HttpMethod.Get, url);
         requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
         
         using var response = await client.SendAsync(requestMessage, ct).ConfigureAwait(false);
-
-        if (typeof(T) == typeof(bool)) return (T)(object)response.IsSuccessStatusCode;
+        if (!response.IsSuccessStatusCode)
+        {
+            var resp = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+            _logger.LogWarning("KeyCloak {r} {url} body={body} {sw}", requestMessage.Method.Method, url,
+                resp, Stopwatch.GetElapsedTime(sw));
+            
+            return default;
+        }
         
         var jsonResponse = await response.Content.ReadAsByteArrayAsync(ct).ConfigureAwait(false);
-        var data = JsonSerializer.Deserialize<T>(jsonResponse, SerializerOptions)!;
-        
-        return data;
+        if (_logger.IsEnabled(LogLevel.Debug))
+        {
+            _logger.LogDebug("KeyCloak {r} {url} response={body} {sw}", requestMessage.Method.Method, url,
+                System.Text.Encoding.UTF8.GetString(jsonResponse), Stopwatch.GetElapsedTime(sw));
+        } else if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation("KeyCloak {r} {url} {sw}", requestMessage.Method.Method, url,
+                Stopwatch.GetElapsedTime(sw));
+        }
+
+        if (typeof(T) == typeof(bool)) return (T)(object)response.IsSuccessStatusCode;
+        return JsonSerializer.Deserialize<T>(jsonResponse, SerializerOptions)!;
     }
     
-    private static async Task<(bool, string)> Send<T>(HttpClient client, HttpMethod method, string url, string accessToken, T body, CancellationToken ct)
+    private async Task<(bool, string)> Send<T>(HttpClient client, HttpMethod method, string url, string accessToken, T body, CancellationToken ct)
     {
+        var sw = Stopwatch.GetTimestamp();
         using var requestMessage = new HttpRequestMessage(method, url);
         requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-        requestMessage.Content = new ByteArrayContent(JsonSerializer.SerializeToUtf8Bytes(body, SerializerOptions))
+        var bodyJson = JsonSerializer.SerializeToUtf8Bytes(body, SerializerOptions);
+        requestMessage.Content = new ByteArrayContent(bodyJson)
             { Headers = { ContentType = MediaTypeHeaderValue.Parse("application/json") } };
         
         using var response = await client.SendAsync(requestMessage, ct).ConfigureAwait(false);
-        if (!response.IsSuccessStatusCode) return (response.IsSuccessStatusCode, await response.Content.ReadAsStringAsync(ct));
-        if (response.Headers.TryGetValues("location", out var loc))
+        if (!response.IsSuccessStatusCode)
         {
-            var location = loc.FirstOrDefault();
-            if (!string.IsNullOrEmpty(location) && location.Contains('/'))
-            {
-                return (true, location[(location.LastIndexOf('/') + 1)..]);
-            }
+            var resp = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+            _logger.LogWarning("KeyCloak {r} {url} response={body} request={req} {sw}", requestMessage.Method.Method, url,
+                resp, System.Text.Encoding.UTF8.GetString(bodyJson), Stopwatch.GetElapsedTime(sw));
+            
+            return (response.IsSuccessStatusCode, resp);
+        }
+
+        if (_logger.IsEnabled(LogLevel.Debug))
+        {
+            var resp = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+            _logger.LogDebug("KeyCloak {r} {url} response={body} request={req} {sw}", requestMessage.Method.Method, url,
+                resp, System.Text.Encoding.UTF8.GetString(bodyJson), Stopwatch.GetElapsedTime(sw));
+        }
+        else if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation("KeyCloak {r} {url} {sw}", requestMessage.Method.Method, url,
+                Stopwatch.GetElapsedTime(sw));
+        }
+
+        if (!response.Headers.TryGetValues("location", out var loc)) return (response.IsSuccessStatusCode, "");
+        var location = loc.FirstOrDefault();
+        if (!string.IsNullOrEmpty(location) && location.Contains('/'))
+        {
+            return (true, location[(location.LastIndexOf('/') + 1)..]);
         }
 
         return (response.IsSuccessStatusCode, "");
