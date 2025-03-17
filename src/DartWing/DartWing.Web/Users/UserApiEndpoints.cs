@@ -56,7 +56,7 @@ public static  class UserApiEndpoints
             var userId = u.FindFirst("sub")?.Value;
             var keyCloakUser = await keyCloakHelper.GetUserById(userId, ct);
             var existErpUser = await erpNextService.GetUserAsync(keyCloakUser.Email, ct);
-            if (existErpUser != null)
+            if (existErpUser == null)
             {
                 logger.LogInformation("Get user {uId} {email}: not found in erpNext {sw}", userId, keyCloakUser.Email, Stopwatch.GetElapsedTime(sw));
                 return Results.NotFound();
