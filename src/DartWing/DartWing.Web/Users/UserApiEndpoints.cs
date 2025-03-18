@@ -28,8 +28,6 @@ public static  class UserApiEndpoints
             var keyCloakUser = await keyCloakHelper.GetUserById(userId, ct);
             if (keyCloakUser == null) return Results.Conflict("KeyCloak user not found");
             var existErpUser = await erpNextService.GetUserAsync(keyCloakUser.Email, ct);
-            if (existErpUser != null)
-                return Results.Conflict("erpNext user already exists");
 
             var dto = new UserCreateRequestDto
             {
