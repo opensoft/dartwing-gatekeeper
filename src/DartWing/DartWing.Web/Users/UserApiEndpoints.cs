@@ -41,9 +41,14 @@ public static  class UserApiEndpoints
                 Country = user.Country,
                 ZipCode = user.PostalCode
             };
+            if (existErpUser != null)
+            {
+                var updErpUser = await erpNextService.UpdateUserAsync(user.Email, dto, ct);
+                return Results.Ok(updErpUser);
+            }
             var erpUser = await erpNextService.CreateUserAsync(dto, ct);
             return Results.Ok(erpUser);
-        }).WithName("CreateUser").WithSummary("Create user");
+        }).WithName("CreateOrUpdateUser").WithSummary("Create or Update user");
         
         group.MapPut("", async ([FromBody] UserInfoRequest user,
             [FromServices] ILogger<Program> logger,
