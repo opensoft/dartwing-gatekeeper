@@ -35,7 +35,7 @@ public static class CompanyApiEndpoints
                 };
                 var erpCompany = await erpNextService.CreateCompanyAsync(cDto, ct);
 
-                return Results.Ok(erpCompany);
+                return Results.Ok(erpCompany.Data);
             }
             UpdateCompanyDto updateDto = new()
             {
@@ -47,7 +47,7 @@ public static class CompanyApiEndpoints
             var erpUpdCompany = await erpNextService.UpdateCompanyAsync(company.Name, updateDto, ct);
 
             return Results.Ok(erpUpdCompany.Data);
-        }).WithName("CreateOrUpdateCompany").WithSummary("Create or Update company");
+        }).WithName("CreateOrUpdateCompany").WithSummary("Create or Update company").Produces<CompanyDto>();
         
         group.MapGet("{companyName}", async ([FromServices] IHttpClientFactory httpClientFactory,
             string companyName,
@@ -66,6 +66,6 @@ public static class CompanyApiEndpoints
             }
             logger.LogInformation("Get company {uId} {email}: OK {sw}", c.Data.Name, c.Data.Abbr, Stopwatch.GetElapsedTime(sw));
             return Results.Ok(c.Data);
-        }).WithName("User").WithSummary("Get user").Produces<CompanyDto>();
+        }).WithName("Company").WithSummary("Get company").Produces<CompanyDto>();
     }
 }
