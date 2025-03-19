@@ -111,9 +111,9 @@ public sealed class ERPNextService
         var sw = Stopwatch.GetTimestamp();
         var url = $"/api/resource/Company/{Uri.EscapeDataString(companyName)}";
         var response = await _httpClient.DeleteAsync(url, ct);
-        return response.IsSuccessStatusCode;
+        return await HandleResponse<bool>(response, sw, ct);
     }
-    
+
     #endregion
 
     #region Helpers
@@ -131,7 +131,6 @@ public sealed class ERPNextService
     }
 
     private async Task<T?> HandleResponse<T>(HttpResponseMessage response, long timestamp, CancellationToken ct)
-        where T : class
     {
         if (!response.IsSuccessStatusCode)
         {
@@ -143,7 +142,7 @@ public sealed class ERPNextService
                 response.RequestMessage?.RequestUri?.AbsoluteUri, response.StatusCode, contentString, request,
                 Stopwatch.GetElapsedTime(timestamp));
 
-            return null;
+            return default;
         }
 
         var content = await response.Content.ReadAsByteArrayAsync(ct);
@@ -163,6 +162,8 @@ public sealed class ERPNextService
                 Stopwatch.GetElapsedTime(timestamp));
         }
 
+        if (typeof(T) == typeof(bool)) return (T)(object)response.IsSuccessStatusCode;
+        
         var result = JsonSerializer.Deserialize<T>(content, JsonSerializerOptions)!;
         return result;
     }

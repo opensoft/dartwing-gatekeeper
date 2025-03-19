@@ -1,6 +1,7 @@
 ﻿using DartWing.ErpNext.Dto;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using static Microsoft.VisualStudio.TestTools.UnitTesting.Assert;
 
 namespace DartWing.ErpNext.Tests;
 
@@ -30,17 +31,55 @@ public sealed class ERPNextServiceTests
 
         var newUserData = await service.CreateUserAsync(u, CancellationToken.None);
         var newUser = newUserData.Data;
-        Assert.IsNotNull(newUser);
+        IsNotNull(newUser);
 
-        Assert.AreEqual(u.Email, newUser.Email);
-        Assert.AreEqual(u.FirstName, newUser.FirstName);
+        AreEqual(u.Email, newUser.Email);
+        AreEqual(u.FirstName, newUser.FirstName);
 
         
         var getUser = await service.GetUserAsync(u.Email, CancellationToken.None);
-        Assert.IsNotNull(getUser);
-        
+        IsNotNull(getUser);
     }
-    
+
+    [TestMethod]
+    public async Task CompanyTest()
+    {
+        var provider = CreateServiceProvider();
+
+        var service = provider.GetService<ERPNextService>();
+
+        CreateCompanyDto c = new()
+        {
+            CompanyName = "Test Company" + Random.Shared.Next(20000),
+            Abbr = "Test Abbr" + Random.Shared.Next(10000),
+            DefaultCurrency = "USD",
+            Domain = "Test Domain" + Random.Shared.Next(10000)
+        };
+        
+        var erpC = await service.CreateCompanyAsync(c, CancellationToken.None);
+        
+        IsNotNull(erpC?.Data);
+        AreEqual(c.Abbr, erpC.Data.Abbr);
+        AreEqual(c.DefaultCurrency, erpC.Data.DefaultCurrency);
+        AreEqual(c.Domain, erpC.Data.Domain);
+        AreEqual(c.CompanyName, erpC.Data.Name);
+        
+        UpdateCompanyDto uc = new()
+        {
+            DefaultCurrency = "USD",
+            Domain = "Test Domain" + Random.Shared.Next(10000)
+        };
+        
+        var erpuC = await service.UpdateCompanyAsync(c.CompanyName, uc, CancellationToken.None);
+        
+        IsNotNull(erpuC?.Data);
+        AreEqual(uc.DefaultCurrency, erpuC.Data.DefaultCurrency);
+        AreEqual(uc.Domain, erpuC.Data.Domain);
+        
+        var success = await service.DeleteCompanyAsync(c.CompanyName, CancellationToken.None);
+        IsTrue(success);
+    }
+
     private static ServiceProvider CreateServiceProvider()
     {
         IServiceCollection services = new ServiceCollection();
