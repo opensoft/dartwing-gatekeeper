@@ -108,6 +108,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.RegisterAzureApiEndpoints();
 app.RegisterUserApiEndpoints();
+app.RegisterCompanyApiEndpoints();
 
 app.UseRouting();
 var t =

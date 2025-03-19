@@ -77,6 +77,44 @@ public sealed class ERPNextService
     }
 
     #endregion
+    
+    #region Company CRUD
+    
+    public async Task<CompanyResponseDto<CompanyDto>?> CreateCompanyAsync(CreateCompanyDto companyDto, CancellationToken ct)
+    {
+        var sw = Stopwatch.GetTimestamp();
+        const string url = "/api/resource/Company";
+        var content = SerializeJson(companyDto);
+        var response = await _httpClient.PostAsync(url, content, ct);
+        return await HandleResponse<CompanyResponseDto<CompanyDto>>(response, sw, ct);
+    }
+
+    public async Task<CompanyResponseDto<CompanyDto>?> GetCompanyAsync(string companyName, CancellationToken ct)
+    {
+        var sw = Stopwatch.GetTimestamp();
+        var url = $"/api/resource/Company/{Uri.EscapeDataString(companyName)}";
+        using var response = await _httpClient.GetAsync(url, ct);
+        return await HandleResponse<CompanyResponseDto<CompanyDto>>(response, sw, ct);
+    }
+
+    public async Task<CompanyResponseDto<CompanyDto>?> UpdateCompanyAsync(string companyName, UpdateCompanyDto updateDto, CancellationToken ct)
+    {
+        var sw = Stopwatch.GetTimestamp();
+        var url = $"/api/resource/Company/{Uri.EscapeDataString(companyName)}";
+        var content = SerializeJson(updateDto);
+        var response = await _httpClient.PutAsync(url, content, ct);
+        return await HandleResponse<CompanyResponseDto<CompanyDto>>(response, sw, ct);
+    }
+
+    public async Task<bool> DeleteCompanyAsync(string companyName, CancellationToken ct)
+    {
+        var sw = Stopwatch.GetTimestamp();
+        var url = $"/api/resource/Company/{Uri.EscapeDataString(companyName)}";
+        var response = await _httpClient.DeleteAsync(url, ct);
+        return response.IsSuccessStatusCode;
+    }
+    
+    #endregion
 
     #region Helpers
 

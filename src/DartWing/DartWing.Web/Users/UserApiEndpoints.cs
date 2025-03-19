@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace DartWing.Web.Users;
 
-public static  class UserApiEndpoints
+public static class UserApiEndpoints
 {
     public static void RegisterUserApiEndpoints(this IEndpointRouteBuilder endpoints)
     {
