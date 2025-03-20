@@ -53,10 +53,56 @@ public sealed class ERPNextService
         var sw = Stopwatch.GetTimestamp();
         var url = $"/api/resource/User/{Uri.EscapeDataString(email)}";
         using var response = await _httpClient.DeleteAsync(url, ct);
-        return response.IsSuccessStatusCode;
+        return await HandleResponse<bool>(response, sw, ct);
     }
-
+    
     #endregion
+
+    
+    #region User Permissions
+
+    public async Task<UserPermissionsDto?> GetUserCompaniesAsync(string email, CancellationToken ct)
+    {
+        var sw = Stopwatch.GetTimestamp();
+        var url = $"/api/resource/User Permission?filters=[[\"user\", \"=\", \"{email}\"], [\"allow\", \"=\", \"Company\"]]&fields=[\"for_value\", \"name\", \"user\"]";
+        using var response = await _httpClient.GetAsync(url, ct);
+        return await HandleResponse<UserPermissionsDto>(response, sw, ct);
+    }
+    
+    public async Task<UserPermissionDto?> AddUserInCompanyAsync(string email, string companyName, CancellationToken ct)
+    {
+        var sw = Stopwatch.GetTimestamp();
+        const string url = "/api/resource/User Permission";
+
+        UserPermission dto = new()
+        {
+            User = email,
+            Allow = "Company",
+            ForValue = companyName,
+            ApplyToAllDoctypes = 1
+        };
+        var content = SerializeJson(dto);
+
+        using var response = await _httpClient.PostAsync(url, content, ct);
+        return await HandleResponse<UserPermissionDto>(response, sw, ct);
+    }
+    
+    public async Task<bool> RemoveUserFromCompanyAsync(string email, string companyName, CancellationToken ct)
+    {
+        var sw = Stopwatch.GetTimestamp();
+        
+        var permissions = await GetUserCompaniesAsync(email, ct);
+        if (permissions?.Data == null) return false;
+        var permission = permissions.Data.FirstOrDefault(x => x.ForValue == companyName);
+        if (permission == null) return true;
+        
+        var url = $"/api/resource/User Permission/{permission.Name}";
+        var response = await _httpClient.DeleteAsync(url, ct);
+        return await HandleResponse<bool>(response, sw, ct);
+    }
+    
+    #endregion
+
 
     #region Role CRUD
 

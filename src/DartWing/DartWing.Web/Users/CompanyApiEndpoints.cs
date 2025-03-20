@@ -37,6 +37,9 @@ public static class CompanyApiEndpoints
                     Country = company.Country
                 };
                 var erpCompany = await erpNextService.CreateCompanyAsync(cDto, ct);
+                
+                var userEmail = httpContextAccessor.HttpContext?.User?.FindFirst("email")?.Value;
+                if (!string.IsNullOrEmpty(userEmail)) await erpNextService.AddUserInCompanyAsync(userEmail, erpCompany!.Data!.Name, ct);
 
                 return Results.Ok(erpCompany.Data);
             }

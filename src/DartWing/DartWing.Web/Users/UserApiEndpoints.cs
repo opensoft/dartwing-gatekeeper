@@ -45,8 +45,13 @@ public static class UserApiEndpoints
                 return Results.Ok(updErpUser);
             }
             var erpUser = await erpNextService.CreateUserAsync(dto, ct);
-            return Results.Ok(erpUser);
-        }).WithName("CreateOrUpdateUser").WithSummary("Create or Update user");
+            
+            if (erpUser?.Data == null) return Results.BadRequest("User creation failed"); 
+            
+            UserInfoResponse response = new(erpUser.Data);
+            
+            return Results.Ok(response);
+        }).WithName("CreateOrUpdateUser").WithSummary("Create or Update user").Produces<UserInfoResponse>();
         
         group.MapPut("", async ([FromBody] UserInfoRequest user,
             [FromServices] ILogger<Program> logger,
@@ -58,13 +63,11 @@ public static class UserApiEndpoints
         {
             logger.LogInformation("API Update user {email}", user.Email);
             var u = httpContextAccessor.HttpContext?.User;
-            var userId = u?.FindFirst("sub")?.Value;
-            if (userId == null) return Results.BadRequest("User id is null");
+            var userId = httpContextAccessor.HttpContext?.User?.FindFirst("sub")?.Value;
             var keyCloakUser = await keyCloakHelper.GetUserById(userId, ct);
             if (keyCloakUser == null) return Results.Conflict("KeyCloak user not found");
             var existErpUser = await erpNextService.GetUserAsync(keyCloakUser.Email, ct);
-            if (existErpUser == null)
-                return Results.Conflict("erpNext user not found");
+            if (existErpUser == null) return Results.Conflict("erpNext user not found");
 
             var dto = new UserCreateRequestDto
             {
@@ -77,8 +80,11 @@ public static class UserApiEndpoints
                 ZipCode = user.PostalCode
             };
             var erpUser = await erpNextService.UpdateUserAsync(user.Email, dto, ct);
-            return Results.Ok(erpUser);
-        }).WithName("UpdateUser").WithSummary("Update user");
+            
+            if (erpUser == null) return Results.BadRequest("User update failed"); 
+            UserInfoResponse response = new(erpUser);
+            return Results.Ok(response);
+        }).WithName("UpdateUser").WithSummary("Update user").Produces<UserInfoResponse>();
 
         group.MapGet("", async ([FromServices] IHttpClientFactory httpClientFactory,
             [FromServices] ILogger<Program> logger,
@@ -89,18 +95,19 @@ public static class UserApiEndpoints
         {
             var sw = Stopwatch.GetTimestamp();
             if (logger.IsEnabled(LogLevel.Debug)) logger.LogDebug("Get user");
-            var u = httpContextAccessor.HttpContext!.User;
-            var userId = u.FindFirst("sub")?.Value;
-            if (userId == null) return Results.BadRequest("User id is null");
-            var keyCloakUser = await keyCloakHelper.GetUserById(userId, ct);
-            var existErpUser = await erpNextService.GetUserAsync(keyCloakUser.Email, ct);
-            if (existErpUser == null)
+            var userId = httpContextAccessor.HttpContext?.User?.FindFirst("sub")?.Value;
+            var userEmail = httpContextAccessor.HttpContext?.User?.FindFirst("email")?.Value;
+            if (userEmail == null) return Results.BadRequest("User email is null");
+            var existErpUser = await erpNextService.GetUserAsync(userEmail, ct);
+            if (existErpUser?.Data == null)
             {
-                logger.LogInformation("Get user {uId} {email}: not found in erpNext {sw}", userId, keyCloakUser.Email, Stopwatch.GetElapsedTime(sw));
+                logger.LogInformation("Get user {uId} {email}: not found in erpNext {sw}", userId, userEmail, Stopwatch.GetElapsedTime(sw));
                 return Results.NotFound();
             }
-            logger.LogInformation("Get user {uId} {email}: OK {sw}", userId, keyCloakUser.Email, Stopwatch.GetElapsedTime(sw));
-            return Results.Ok(existErpUser);
-        }).WithName("User").WithSummary("Get user").Produces<UserInfoRequest>();
+            logger.LogInformation("Get user {uId} {email}: OK {sw}", userId, userEmail, Stopwatch.GetElapsedTime(sw));
+            UserInfoResponse response = new(existErpUser.Data);
+            
+            return Results.Ok(response);
+        }).WithName("User").WithSummary("Get user").Produces<UserInfoResponse>();
     }
 }

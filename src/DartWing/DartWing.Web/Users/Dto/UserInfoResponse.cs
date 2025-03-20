@@ -1,0 +1,35 @@
+using DartWing.ErpNext.Dto;
+
+namespace DartWing.Web.Users.Dto;
+
+public sealed class UserInfoResponse
+{
+    public UserInfoResponse() { }
+
+    public UserInfoResponse(UserResponseDto erpUserData)
+    {
+        Name = erpUserData.Name;
+        Email = erpUserData.Email;
+        Creation = erpUserData.Creation;
+        Modified = erpUserData.Modified;
+        Enabled = erpUserData.Enabled;
+        FirstName = erpUserData.FirstName;
+        FullName = erpUserData.FullName;
+        Language = erpUserData.Language;
+        TimeZone = erpUserData.TimeZone;
+        ModifiedBy = erpUserData.ModifiedBy;
+        Owner = erpUserData.Owner;
+    }
+
+    public string Name { get; set; }
+    public string Owner { get; set; }
+    public DateTime Creation { get; set; }
+    public DateTime Modified { get; set; }
+    public string ModifiedBy { get; set; }
+    public int Enabled { get; set; }
+    public string Email { get; set; }
+    public string FirstName { get; set; }
+    public string FullName { get; set; }
+    public string Language { get; set; }
+    public string TimeZone { get; set; }
+}

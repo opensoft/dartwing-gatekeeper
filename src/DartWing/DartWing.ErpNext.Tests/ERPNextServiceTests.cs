@@ -14,7 +14,19 @@ public sealed class ERPNextServiceTests
         var provider = CreateServiceProvider();
 
         var service = provider.GetService<ERPNextService>();
+        var (u, newUser) = await CreateUser(service);
+        IsNotNull(newUser);
 
+        AreEqual(u.Email, newUser.Email);
+        AreEqual(u.FirstName, newUser.FirstName);
+
+        
+        var getUser = await service.GetUserAsync(u.Email, CancellationToken.None);
+        IsNotNull(getUser);
+    }
+
+    private static async Task<(UserCreateRequestDto request, UserResponseDto response)> CreateUser(ERPNextService service)
+    {
         UserCreateRequestDto u = new()
         {
             Address = "123 Main Street",
@@ -30,15 +42,23 @@ public sealed class ERPNextServiceTests
         };
 
         var newUserData = await service.CreateUserAsync(u, CancellationToken.None);
-        var newUser = newUserData.Data;
-        IsNotNull(newUser);
+        return (u, newUserData!.Data);
+    }
 
-        AreEqual(u.Email, newUser.Email);
-        AreEqual(u.FirstName, newUser.FirstName);
-
+    private static async Task<(CreateCompanyDto request, CompanyDto? response)> CreateCompany(ERPNextService service)
+    {
+        CreateCompanyDto c = new()
+        {
+            CompanyName = "Test Company" + Random.Shared.Next(20000),
+            Abbr = "Test Abbr" + Random.Shared.Next(10000),
+            DefaultCurrency = "USD",
+            Domain = "Test Domain" + Random.Shared.Next(10000),
+            Country = "United States"
+        };
         
-        var getUser = await service.GetUserAsync(u.Email, CancellationToken.None);
-        IsNotNull(getUser);
+        var erpC = await service.CreateCompanyAsync(c, CancellationToken.None);
+        
+        return (c, erpC?.Data);
     }
 
     [TestMethod]
@@ -48,22 +68,13 @@ public sealed class ERPNextServiceTests
 
         var service = provider.GetService<ERPNextService>();
 
-        CreateCompanyDto c = new()
-        {
-            CompanyName = "Test Company" + Random.Shared.Next(20000),
-            Abbr = "Test Abbr" + Random.Shared.Next(10000),
-            DefaultCurrency = "USD",
-            Domain = "Test Domain" + Random.Shared.Next(10000),
-            Country = "USA"
-        };
+        var (c, erpC) = await CreateCompany(service);
         
-        var erpC = await service.CreateCompanyAsync(c, CancellationToken.None);
-        
-        IsNotNull(erpC?.Data);
-        AreEqual(c.Abbr, erpC.Data.Abbr);
-        AreEqual(c.DefaultCurrency, erpC.Data.DefaultCurrency);
-        AreEqual(c.Domain, erpC.Data.Domain);
-        AreEqual(c.CompanyName, erpC.Data.Name);
+        IsNotNull(erpC);
+        AreEqual(c.Abbr, erpC.Abbr);
+        AreEqual(c.DefaultCurrency, erpC.DefaultCurrency);
+        AreEqual(c.Domain, erpC.Domain);
+        AreEqual(c.CompanyName, erpC.Name);
         
         UpdateCompanyDto uc = new()
         {
@@ -84,6 +95,33 @@ public sealed class ERPNextServiceTests
         
         var success = await service.DeleteCompanyAsync(c.CompanyName, CancellationToken.None);
         IsTrue(success);
+    }
+
+
+    [TestMethod]
+    public async Task UsersInCompanyTest()
+    {
+        var provider = CreateServiceProvider();
+
+        var service = provider.GetService<ERPNextService>()!;
+
+        var usr = await CreateUser(service);
+        var company = await CreateCompany(service);
+
+        try
+        {
+            var res = await service.AddUserInCompanyAsync(usr.response.Email, company.response.Name, CancellationToken.None);
+
+            var resComps = await service.GetUserCompaniesAsync(usr.response.Email, CancellationToken.None);
+
+            var removed = await service.RemoveUserFromCompanyAsync(usr.response.Email, company.response.Name, CancellationToken.None);
+        }
+        catch (Exception e)
+        {
+        }
+        
+        var delComp = await service.DeleteCompanyAsync(company.response.Name, CancellationToken.None);
+        var delUsr =await service.DeleteUserAsync(usr.response.Name, CancellationToken.None);
     }
 
     private static ServiceProvider CreateServiceProvider()
