@@ -53,7 +53,8 @@ public sealed class ERPNextServiceTests
             CompanyName = "Test Company" + Random.Shared.Next(20000),
             Abbr = "Test Abbr" + Random.Shared.Next(10000),
             DefaultCurrency = "USD",
-            Domain = "Test Domain" + Random.Shared.Next(10000)
+            Domain = "Test Domain" + Random.Shared.Next(10000),
+            Country = "USA"
         };
         
         var erpC = await service.CreateCompanyAsync(c, CancellationToken.None);
@@ -67,7 +68,12 @@ public sealed class ERPNextServiceTests
         UpdateCompanyDto uc = new()
         {
             DefaultCurrency = "USD",
-            Domain = "Test Domain" + Random.Shared.Next(10000)
+            Domain = "Test Domain" + Random.Shared.Next(10000),
+            CustomMicrosoftSharepointFolderPath = "root:",
+            CustomMicrosoftDelegatedUser = "service.dartwing@opensoft.one",
+            CustomMicrosoftTenantId = Guid.NewGuid().ToString(),
+            CustomMicrosoftTenantName = "defaultPermissions",
+            Country = "USA"
         };
         
         var erpuC = await service.UpdateCompanyAsync(c.CompanyName, uc, CancellationToken.None);

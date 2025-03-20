@@ -21,27 +21,33 @@ public static class CompanyApiEndpoints
             [FromServices] ERPNextService erpNextService,
             CancellationToken ct) =>
         {
-            logger.LogInformation("API Create company {name} {abb}", company.Name, company.Abbreviation);
+            logger.LogInformation("API Create/Update company {name} {abb}", company.Name, company.Abbreviation);
 
             var c = await erpNextService.GetCompanyAsync(company.Name, ct);
-            if (c == null)
+            if (c?.Data == null)
             {
                 CreateCompanyDto cDto = new()
                 {
                     Abbr = company.Abbreviation,
                     CompanyName = company.Name,
                     DefaultCurrency = company.Currency,
-                    Domain = company.Domain
+                    Domain = company.Domain,
+                    CustomType = company.CompanyType,
+                    CustomMicrosoftSharepointFolderPath = company.MicrosoftSharepointFolderPath,
+                    Country = company.Country
                 };
                 var erpCompany = await erpNextService.CreateCompanyAsync(cDto, ct);
 
                 return Results.Ok(erpCompany.Data);
             }
-            UpdateCompanyDto updateDto = new()
+            UpdateCompanyDto updateDto = new(c.Data)
             {
-                DefaultCurrency = c.Data.DefaultCurrency,
-                Domain = c.Data.Domain,
-                IsEnabled = company.IsEnabled
+                IsEnabled = company.IsEnabled,
+                CustomMicrosoftSharepointFolderPath = company.MicrosoftSharepointFolderPath,
+                Domain = company.Domain,
+                DefaultCurrency = company.Currency,
+                CustomType = company.CompanyType,
+                Country = company.Country
             };
             
             var erpUpdCompany = await erpNextService.UpdateCompanyAsync(company.Name, updateDto, ct);

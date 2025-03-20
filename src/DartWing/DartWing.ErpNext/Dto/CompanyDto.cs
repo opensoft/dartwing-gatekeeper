@@ -1,3 +1,4 @@
+
 namespace DartWing.ErpNext.Dto;
 
 public sealed class CompanyDto
@@ -7,6 +8,14 @@ public sealed class CompanyDto
     public string DefaultCurrency { get; set; } // Default Currency
     public string Domain { get; set; } // Business Domain
     public bool IsEnabled { get; set; } = true; // Status
+    public string Country { get; set; }
+    
+    public string CustomType { get; set; }
+    
+    public string? CustomMicrosoftTenantId { get; set; }
+    public string? CustomMicrosoftTenantName { get; set; }
+    public string? CustomMicrosoftSharepointFolderPath { get; set; }
+    public string? CustomMicrosoftDelegatedUser { get; set; }
 }
 
 public sealed class CreateCompanyDto
@@ -14,14 +23,44 @@ public sealed class CreateCompanyDto
     public required string CompanyName { get; set; }
     public required string Abbr { get; set; }
     public required string DefaultCurrency { get; set; }
+    public string Country { get; set; }
     public string Domain { get; set; }
+    public string CustomType { get; set; }
+    
+    public string? CustomMicrosoftTenantId { get; set; }
+    public string? CustomMicrosoftTenantName { get; set; }
+    public string? CustomMicrosoftSharepointFolderPath { get; set; }
+    public string? CustomMicrosoftDelegatedUser { get; set; }
 }
 
 public sealed class UpdateCompanyDto
 {
+    public UpdateCompanyDto()
+    {
+    }
+    public UpdateCompanyDto(CompanyDto cData)
+    {
+        CustomMicrosoftTenantId = cData.CustomMicrosoftTenantId;
+        CustomMicrosoftTenantName = cData.CustomMicrosoftTenantName;
+        CustomMicrosoftSharepointFolderPath = cData.CustomMicrosoftSharepointFolderPath;
+        CustomMicrosoftDelegatedUser = cData.CustomMicrosoftDelegatedUser;
+        CustomType = cData.CustomType;
+        Domain = cData.Domain;
+        IsEnabled = cData.IsEnabled;
+        DefaultCurrency = cData.DefaultCurrency;
+        Country = cData.Country;
+    }
+
     public string? DefaultCurrency { get; set; }
     public string? Domain { get; set; }
     public bool? IsEnabled { get; set; }
+    public string Country { get; set; }
+    public string CustomType { get; set; }
+    
+    public string? CustomMicrosoftTenantId { get; set; }
+    public string? CustomMicrosoftTenantName { get; set; }
+    public string? CustomMicrosoftSharepointFolderPath { get; set; }
+    public string? CustomMicrosoftDelegatedUser { get; set; }
 }
 
 public sealed class DeleteCompanyDto

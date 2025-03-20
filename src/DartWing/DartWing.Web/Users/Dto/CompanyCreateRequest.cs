@@ -8,4 +8,7 @@ public sealed class CompanyCreateRequest
     public string Country { get; set; }
     public string Domain { get; set; }
     public bool? IsEnabled { get; set; } = true;
+    public string CompanyType { get; set; } = "Company";
+    
+    public string? MicrosoftSharepointFolderPath { get; set; }
 }
