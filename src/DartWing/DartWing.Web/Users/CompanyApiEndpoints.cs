@@ -40,8 +40,9 @@ public static class CompanyApiEndpoints
                 
                 var userEmail = httpContextAccessor.HttpContext?.User?.FindFirst("email")?.Value;
                 if (!string.IsNullOrEmpty(userEmail)) await erpNextService.AddUserInCompanyAsync(userEmail, erpCompany!.Data!.Name, ct);
+                CompanyResponse crResponse = new(erpCompany.Data);
 
-                return Results.Ok(erpCompany.Data);
+                return Results.Ok(crResponse);
             }
             UpdateCompanyDto updateDto = new(c.Data)
             {
@@ -54,9 +55,10 @@ public static class CompanyApiEndpoints
             };
             
             var erpUpdCompany = await erpNextService.UpdateCompanyAsync(company.Name, updateDto, ct);
-
-            return Results.Ok(erpUpdCompany.Data);
-        }).WithName("CreateOrUpdateCompany").WithSummary("Create or Update company").Produces<CompanyDto>();
+            CompanyResponse response = new(erpUpdCompany.Data);
+            
+            return Results.Ok(response);
+        }).WithName("CreateOrUpdateCompany").WithSummary("Create or Update company").Produces<CompanyResponse>();
         
         group.MapGet("{companyName}", async ([FromServices] IHttpClientFactory httpClientFactory,
             string companyName,
@@ -69,12 +71,10 @@ public static class CompanyApiEndpoints
             var sw = Stopwatch.GetTimestamp();
             if (logger.IsEnabled(LogLevel.Debug)) logger.LogDebug("Get company {companyName}", companyName);
             var c = await erpNextService.GetCompanyAsync(companyName, ct);
-            if (c == null)
-            {
-                return Results.NotFound("Company not found");
-            }
+            if (c?.Data == null) return Results.NotFound("Company not found");
+            CompanyResponse crResponse = new(c.Data);
             logger.LogInformation("Get company {uId} {email}: OK {sw}", c.Data.Name, c.Data.Abbr, Stopwatch.GetElapsedTime(sw));
-            return Results.Ok(c.Data);
-        }).WithName("Company").WithSummary("Get company").Produces<CompanyDto>();
+            return Results.Ok(crResponse);
+        }).WithName("Company").WithSummary("Get company").Produces<CompanyResponse>();
     }
 }
