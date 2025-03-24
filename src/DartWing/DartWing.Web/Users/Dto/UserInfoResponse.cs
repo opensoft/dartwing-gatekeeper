@@ -33,3 +33,10 @@ public sealed class UserInfoResponse
     public string Language { get; set; }
     public string TimeZone { get; set; }
 }
+
+public sealed class UserCompanyResponse
+{
+    public string CompanyName { get; set; }
+    public string UserId { get; set; }
+    public string Email { get; set; }
+}

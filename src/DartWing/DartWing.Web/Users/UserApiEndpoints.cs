@@ -109,5 +109,30 @@ public static class UserApiEndpoints
             
             return Results.Ok(response);
         }).WithName("User").WithSummary("Get user").Produces<UserInfoResponse>();
+        
+        group.MapGet("companies", async ([FromServices] IHttpClientFactory httpClientFactory,
+            [FromServices] ILogger<Program> logger,
+            [FromServices] IHttpContextAccessor httpContextAccessor,
+            [FromServices] KeyCloakHelper keyCloakHelper,
+            [FromServices] ERPNextService erpNextService,
+            CancellationToken ct) =>
+        {
+            var sw = Stopwatch.GetTimestamp();
+            if (logger.IsEnabled(LogLevel.Debug)) logger.LogDebug("Get user companies");
+            var userId = httpContextAccessor.HttpContext?.User?.FindFirst("sub")?.Value;
+            var userEmail = httpContextAccessor.HttpContext?.User?.FindFirst("email")?.Value;
+            if (userEmail == null) return Results.BadRequest("User email is null");
+            var companies = await erpNextService.GetUserCompaniesAsync(userEmail, ct);
+            if (companies?.Data == null)
+            {
+                logger.LogInformation("Get user companies {uId} {email}: not found in erpNext {sw}", userId, userEmail, Stopwatch.GetElapsedTime(sw));
+                return Results.NotFound();
+            }
+            logger.LogInformation("Get user companies {uId} {email}: {cnt} OK {sw}", userId, userEmail, companies.Data.Length, Stopwatch.GetElapsedTime(sw));
+            var response = companies.Data.Select(x => new UserCompanyResponse
+                { CompanyName = x.ForValue, Email = userEmail, UserId = userId! }).ToArray();
+            
+            return Results.Ok(response);
+        }).WithName("UserCompanies").WithSummary("Get user companies").Produces<UserCompanyResponse[]>();
     }
 }
