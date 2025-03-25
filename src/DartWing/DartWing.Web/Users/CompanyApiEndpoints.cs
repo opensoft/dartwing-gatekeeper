@@ -76,5 +76,29 @@ public static class CompanyApiEndpoints
             logger.LogInformation("Get company {uId} {email}: OK {sw}", c.Data.Name, c.Data.Abbr, Stopwatch.GetElapsedTime(sw));
             return Results.Ok(crResponse);
         }).WithName("Company").WithSummary("Get company").Produces<CompanyResponse>();
+        
+        group.MapGet("{companyName}/providers", async ([FromServices] IHttpClientFactory httpClientFactory,
+            string companyName,
+            [FromServices] ILogger<Program> logger,
+            [FromServices] IHttpContextAccessor httpContextAccessor,
+            [FromServices] KeyCloakHelper keyCloakHelper,
+            [FromServices] ERPNextService erpNextService,
+            CancellationToken ct) =>
+        {
+            var sw = Stopwatch.GetTimestamp();
+            if (logger.IsEnabled(LogLevel.Debug)) logger.LogDebug("Get company providers {companyName}", companyName);
+            var c = await erpNextService.GetCompanyAsync(companyName, ct);
+            if (c?.Data == null) return Results.NotFound("Company not found");
+            CompanyProvidersResponse crResponse = new()
+            {
+                Providers =
+                [
+                    new CompanyProviderResponse { Name = "Microsoft SharePoint", Alias = "azure_sharepoint" },
+                    new CompanyProviderResponse { Name = "Google Drive", Alias = "google_onedrive" }
+                ]
+            };
+            logger.LogInformation("Get company providers {uId} {email}: OK {sw}", c.Data.Name, c.Data.Abbr, Stopwatch.GetElapsedTime(sw));
+            return Results.Ok(crResponse);
+        }).WithName("CompanyProviders").WithSummary("Get company providers").Produces<CompanyProvidersResponse>();
     }
 }

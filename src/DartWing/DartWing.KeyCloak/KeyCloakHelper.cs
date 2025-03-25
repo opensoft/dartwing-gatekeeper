@@ -84,7 +84,7 @@ public sealed class KeyCloakHelper
         requestMessage.Content = new StringContent(userId)
             { Headers = { ContentType = MediaTypeHeaderValue.Parse("application/json") } };
         
-        var client = _httpClientFactory.CreateClient("Auth0Client");
+        var client = _httpClientFactory.CreateClient("KeyCloak");
         using var response = await client.SendAsync(requestMessage, ct).ConfigureAwait(false);
         return response.IsSuccessStatusCode;
     }
@@ -116,14 +116,6 @@ public sealed class KeyCloakHelper
         var existRoles = clientMapping?.Mappings.Select(x => x.Name).ToArray() ?? [];
         return existRoles;
     }
-
-    /*public async Task<Auth0Permission[]> GetPermissions(string userId, CancellationToken ct)
-    {
-        var accessToken = await GetAccessToken(ct);
-        var url = _settings.GetUserPermissionsByIdUrl(userId);
-        var client = _httpClientFactory.CreateClient("Auth0Client");
-        return await Send<Auth0Permission[]>(url, accessToken, false, ct).ConfigureAwait(false);
-    }*/
     
     public async Task<bool> AddRoles(string userId, string[] roles, CancellationToken ct)
     {
@@ -220,11 +212,45 @@ public sealed class KeyCloakHelper
         return resp.Item1;
     }
 
-    public async Task<string> TokenExchange(string accessToken, string userId, CancellationToken ct)
+    public async ValueTask<string> GetProviderToken(string email, string identityProvider, CancellationToken ct)
     {
+        if (_memoryCache.TryGetValue($"KeyCloak:ApiToken:{identityProvider}:{email}", out var token) && token is not null)
+            return (string)token;
+        
         var sw = Stopwatch.GetTimestamp();
+        var url = _settings.GetTokenUrl();
 
-        return "";
+        var tokenRequest = new Dictionary<string, string>
+        {
+            { "grant_type", "urn:ietf:params:oauth:grant-type:token-exchange" },
+            { "client_id", _settings.ClientId },
+            { "client_secret", _settings.ClientSecret },
+            {"requested_token_type ", "urn:ietf:params:oauth:token-type:access_token"},
+            {"requested_subject", email},
+            {"requested_issuer", identityProvider}
+        };
+
+        using var requestMessage = new HttpRequestMessage(HttpMethod.Post, url);
+        requestMessage.Content = new FormUrlEncodedContent(tokenRequest);
+
+        var client = _httpClientFactory.CreateClient("KeyCloak");
+
+        using var responseMessage = await client.SendAsync(requestMessage, ct).ConfigureAwait(false);
+        if (!responseMessage.IsSuccessStatusCode) return "";
+
+        var body = await responseMessage.Content.ReadAsByteArrayAsync(ct).ConfigureAwait(false);
+        var tokenResponse = JsonSerializer.Deserialize<AuthTokenResponse>(body)!;
+
+        if (tokenResponse.ExpiresIn > 200)
+            _memoryCache.Set($"KeyCloak:ApiToken:{identityProvider}:{email}", tokenResponse.AccessToken,
+                TimeSpan.FromSeconds(tokenResponse.ExpiresIn - 150));
+
+        _logger.LogInformation(
+            "KeyCloak get {pr} {type} token for client={cl} user={usr} expIn={ex}sec {sw}",
+            identityProvider, tokenResponse.TokenType, _settings.ClientId, email, tokenResponse.ExpiresIn,
+            Stopwatch.GetElapsedTime(sw));
+
+        return tokenResponse.AccessToken;
     }
 
     private async ValueTask<string> GetAccessToken(CancellationToken ct)

@@ -33,3 +33,14 @@ public sealed class CompanyResponse
     public string? MicrosoftTenantName { get; set; }
     public string? MicrosoftSharepointFolderPath { get; set; }
 }
+
+public sealed class CompanyProvidersResponse
+{
+    public CompanyProviderResponse[] Providers { get; set; }
+}
+
+public sealed class CompanyProviderResponse
+{
+    public string Alias { get; set; }
+    public string Name { get; set; }
+}
