@@ -34,4 +34,5 @@ public sealed class UserPermission
     public int ApplyToAllDoctypes { get; set; }
     public int HideDescendants { get; set; }
     public string Doctype { get; set; }
+    public string CustomCompanyrole { get; set; }
 }

@@ -110,11 +110,11 @@ public sealed class ERPNextServiceTests
 
         try
         {
-            var res = await service.AddUserInCompanyAsync(usr.response.Email, company.response.Name, CancellationToken.None);
+            var res = await service.AddUserInCompanyAsync(usr.response.Email, company.response.Name, "Administrator", CancellationToken.None);
 
             var resComps = await service.GetUserCompaniesAsync(usr.response.Email, CancellationToken.None);
 
-            var removed = await service.RemoveUserFromCompanyAsync(usr.response.Email, company.response.Name, CancellationToken.None);
+            var removed = await service.RemoveUserFromCompanyAsync(usr.response.Email, company.response.Name, "Administrator", CancellationToken.None);
         }
         catch (Exception e)
         {

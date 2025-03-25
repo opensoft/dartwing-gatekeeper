@@ -39,7 +39,7 @@ public static class CompanyApiEndpoints
                 var erpCompany = await erpNextService.CreateCompanyAsync(cDto, ct);
                 
                 var userEmail = httpContextAccessor.HttpContext?.User?.FindFirst("email")?.Value;
-                if (!string.IsNullOrEmpty(userEmail)) await erpNextService.AddUserInCompanyAsync(userEmail, erpCompany!.Data!.Name, ct);
+                if (!string.IsNullOrEmpty(userEmail)) await erpNextService.AddUserInCompanyAsync(userEmail, erpCompany!.Data!.Name, "Administrator", ct);
                 CompanyResponse crResponse = new(erpCompany.Data);
 
                 return Results.Ok(crResponse);

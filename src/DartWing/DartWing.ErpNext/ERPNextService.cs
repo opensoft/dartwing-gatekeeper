@@ -64,12 +64,12 @@ public sealed class ERPNextService
     public async Task<UserPermissionsDto?> GetUserCompaniesAsync(string email, CancellationToken ct)
     {
         var sw = Stopwatch.GetTimestamp();
-        var url = $"/api/resource/User Permission?filters=[[\"user\", \"=\", \"{email}\"], [\"allow\", \"=\", \"Company\"]]&fields=[\"for_value\", \"name\", \"user\"]";
+        var url = $"/api/resource/User Permission?filters=[[\"user\", \"=\", \"{email}\"], [\"allow\", \"=\", \"Company\"]]&fields=[\"for_value\", \"name\", \"user\", \"custom_companyrole\"]";
         using var response = await _httpClient.GetAsync(url, ct);
         return await HandleResponse<UserPermissionsDto>(response, sw, ct);
     }
     
-    public async Task<UserPermissionDto?> AddUserInCompanyAsync(string email, string companyName, CancellationToken ct)
+    public async Task<UserPermissionDto?> AddUserInCompanyAsync(string email, string companyName, string role, CancellationToken ct)
     {
         var sw = Stopwatch.GetTimestamp();
         const string url = "/api/resource/User Permission";
@@ -79,7 +79,8 @@ public sealed class ERPNextService
             User = email,
             Allow = "Company",
             ForValue = companyName,
-            ApplyToAllDoctypes = 1
+            ApplyToAllDoctypes = 1,
+            CustomCompanyrole = role
         };
         var content = SerializeJson(dto);
 
@@ -87,13 +88,13 @@ public sealed class ERPNextService
         return await HandleResponse<UserPermissionDto>(response, sw, ct);
     }
     
-    public async Task<bool> RemoveUserFromCompanyAsync(string email, string companyName, CancellationToken ct)
+    public async Task<bool> RemoveUserFromCompanyAsync(string email, string companyName, string role, CancellationToken ct)
     {
         var sw = Stopwatch.GetTimestamp();
         
         var permissions = await GetUserCompaniesAsync(email, ct);
         if (permissions?.Data == null) return false;
-        var permission = permissions.Data.FirstOrDefault(x => x.ForValue == companyName);
+        var permission = permissions.Data.FirstOrDefault(x => x.ForValue == companyName && x.CustomCompanyrole == role);
         if (permission == null) return true;
         
         var url = $"/api/resource/User Permission/{permission.Name}";
