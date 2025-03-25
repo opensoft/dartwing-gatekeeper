@@ -220,6 +220,13 @@ public sealed class KeyCloakHelper
         return resp.Item1;
     }
 
+    public async Task<string> TokenExchange(string accessToken, string userId, CancellationToken ct)
+    {
+        var sw = Stopwatch.GetTimestamp();
+
+        return "";
+    }
+
     private async ValueTask<string> GetAccessToken(CancellationToken ct)
     {
         if (_memoryCache.TryGetValue("KeyCloak:ApiToken", out var token) && token is not null)
