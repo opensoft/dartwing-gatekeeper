@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace DartWing.Web.KeyCloak;
+namespace DartWing.KeyCloak;
 
 public sealed class KeyCloakSettings
 {

@@ -1,8 +1,7 @@
-using DartWing.KeyCloak;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace DartWing.Web.KeyCloak;
+namespace DartWing.KeyCloak;
 
 public static class KeyCloakExtension
 {

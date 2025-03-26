@@ -1,6 +1,6 @@
 using DartWing.ErpNext;
 using DartWing.KeyCloak;
-using DartWing.Web.Azure;
+using DartWing.Microsoft;
 using DartWing.Web.Files.Dto;
 using Microsoft.AspNetCore.Mvc;
 
@@ -18,6 +18,7 @@ public static class FilesApiEndpoints
             [FromServices] IHttpContextAccessor httpContextAccessor,
             [FromServices] KeyCloakHelper keyCloakHelper,
             [FromServices] ERPNextService erpNextService,
+            [FromServices] GraphApiHelper graphApiHelper,
             CancellationToken ct) =>
         {
             logger.LogInformation("API Get folder {c} {p} {f}", request.Company, request.Provider, request.FolderPath);
@@ -31,16 +32,54 @@ public static class FilesApiEndpoints
             var providerToken = await keyCloakHelper.GetProviderToken(userEmail, request.Provider, ct);
             if (string.IsNullOrEmpty(providerToken))
             {
-                
                 return Results.Ok(new CdFolderResponse(keyCloakHelper.BuildProviderRedirectUrl(request.Provider)));
             }
+
+            var clientToken = await graphApiHelper.GetClientAccessTokenFromUserToken(providerToken, ct);
+            using GraphApiAdapter clientAdapter = new(clientToken);
+            var allSites = await clientAdapter.GetAllSitesWithDrives(ct);
             
-            GraphApiAdapter adapter = new(providerToken);
-            var fold = await adapter.GetMyFolders(ct);
-            var sites = await adapter.GetAllSites(ct);
-            //var drives = await adapter.GetAllDrives(ct);
+            using GraphApiAdapter adapter = new(providerToken);
             
-            return Results.Ok(sites);
+            List<GraphApiAdapter.MicrosoftDriveInfo> acceptedDrives = []; 
+
+            foreach (var site in allSites)
+            {
+                foreach (var dr in site.Drives)
+                {
+                    var allFolders = await adapter.GetFolders(dr.Id, false, ct);
+                    if (allFolders.Count == 0) continue;
+                    dr.Folders = allFolders;
+                    dr.Site = site;
+                    acceptedDrives.Add(dr);
+                }
+            }
+            List<CdFolder> folders = [];
+            foreach (var site in acceptedDrives.Select(x => x.Site).Distinct())
+            {
+                folders.Add(new CdFolder { Id = site.Id, Name = site.Name , Description = "SharePoint site"});
+            }
+            
+            foreach (var drive in acceptedDrives)
+            {
+                folders.Add(new CdFolder { Id = drive.Id, Name = drive.Name, ParentId = drive.Site.Id, Description = "SharePoint Drive"});
+            }
+            
+            foreach (var folder in acceptedDrives.SelectMany(x => x.Folders))
+            {
+                folders.Add(new CdFolder
+                {
+                    Id = folder.Id, Name = folder.Name, ParentId = folder.ParentFolderId ?? folder.DriveId,
+                    Description = folder.ParentFolderId == null ? "SharePoint Root Folder" : "SharePoint Folder"
+                });
+            }
+
+            CdFolderResponse response = new()
+            {
+                Folders = folders
+            };
+            
+            return Results.Ok(response);
         }).WithName("GetFolders").WithSummary("Get folders").Produces<CdFolderResponse>();
     }
 }

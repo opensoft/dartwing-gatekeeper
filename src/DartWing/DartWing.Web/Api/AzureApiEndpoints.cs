@@ -2,7 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-using DartWing.Web.Azure;
+using DartWing.Microsoft;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DartWing.Web.Api;

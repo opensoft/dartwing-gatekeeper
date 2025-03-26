@@ -6,11 +6,14 @@ public sealed class CdFolderResponse
 
     public CdFolderResponse(string redirectUrl) { RedirectUrl = redirectUrl; }
 
-    public CdFolder[] Folders { get; set; }
+    public List<CdFolder> Folders { get; set; }
     public string RedirectUrl { get; set; }
 }
 
 public sealed class CdFolder
 {
-    
+    public string Id { get; set; }
+    public string Name { get; set; }
+    public string ParentId { get; set; }
+    public string Description { get; set; }
 }

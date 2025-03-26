@@ -1,4 +1,4 @@
-namespace DartWing.Web.KeyCloak.Dto;
+namespace DartWing.KeyCloak.Dto;
 
 public sealed class UserResponse
 {

@@ -1,6 +1,4 @@
-﻿using DartWing.Web.KeyCloak;
-using DartWing.Web.KeyCloak.Dto;
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace DartWing.KeyCloak.Tests;

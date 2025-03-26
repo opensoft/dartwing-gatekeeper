@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace DartWing.Web.KeyCloak.Dto;
+namespace DartWing.KeyCloak.Dto;
 
 internal sealed class AuthTokenResponse
 {

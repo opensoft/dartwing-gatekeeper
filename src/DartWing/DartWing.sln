@@ -16,6 +16,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DartWing.Google", "DartWing
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DartWing.Microsoft", "DartWing.Microsoft\DartWing.Microsoft.csproj", "{090D3794-E1A5-429E-B73B-8DFC6A0AC990}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DartWing.Microsoft.Tests", "DartWing.Microsoft.Tests\DartWing.Microsoft.Tests.csproj", "{5A16C8E2-47D8-46C3-AC65-3AA0F21B0EE1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -50,9 +52,14 @@ Global
 		{090D3794-E1A5-429E-B73B-8DFC6A0AC990}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{090D3794-E1A5-429E-B73B-8DFC6A0AC990}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{090D3794-E1A5-429E-B73B-8DFC6A0AC990}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5A16C8E2-47D8-46C3-AC65-3AA0F21B0EE1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5A16C8E2-47D8-46C3-AC65-3AA0F21B0EE1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5A16C8E2-47D8-46C3-AC65-3AA0F21B0EE1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5A16C8E2-47D8-46C3-AC65-3AA0F21B0EE1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{A856DF0D-6196-4989-9708-97729D0B35F6} = {4C085AA8-0F08-4DAC-85F7-1130DBB7E8C4}
 		{36F14EA7-69AF-4E6C-AA29-D338D81F8AE1} = {4C085AA8-0F08-4DAC-85F7-1130DBB7E8C4}
+		{5A16C8E2-47D8-46C3-AC65-3AA0F21B0EE1} = {4C085AA8-0F08-4DAC-85F7-1130DBB7E8C4}
 	EndGlobalSection
 EndGlobal
