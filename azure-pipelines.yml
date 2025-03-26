@@ -115,7 +115,7 @@ stages:
         
         #ingress
         Hosts: 
-          - dartwing.tech-corps.com
+          - dartwing-dotnet-gatekeeper-qa.tech-corps.com
         secretName: tech-corps-tls
 
         #deployment
