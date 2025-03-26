@@ -108,7 +108,7 @@ stages:
         deployAll: 'true'
         
         Project: dartwing
-        ApplicationName: dotnet_gatekeeper
+        ApplicationName: dotnet-gatekeeper
         ApplicationEnvironment: qa
         Namespace: dartwing
         certManager: true
@@ -130,4 +130,4 @@ stages:
           - name: ASPNETCORE_HTTP_PORTS
             value: 80
           - name: PapertrailSettings__HostName
-            value: "dartwing-dotnet_gatekeeper-qa"          
+            value: "dartwing-dotnet-gatekeeper-qa"          
