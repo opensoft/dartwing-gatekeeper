@@ -77,7 +77,7 @@ stages:
       displayName: 'buildAndPush image'
       inputs:
           containerRegistry: dotNetFarheap
-          repository: 'dartwing-service-$(Build.SourceBranchName)'
+          repository: 'dartwing-dotnet_gatekeeper-$(Build.SourceBranchName)'
           Dockerfile: '$(build.artifactstagingdirectory)/Dockerfile'
           buildContext: '$(build.artifactstagingdirectory)/'
           tags: |
@@ -85,15 +85,15 @@ stages:
             latest
 
     - task: PublishBuildArtifacts@1
-      displayName: 'Publish Artifact: DartWing-Service'
+      displayName: 'Publish Artifact: DartWing-dotnet_gatekeeper'
       inputs:
           PathtoPublish: '$(Build.ArtifactStagingDirectory)/'
-          ArtifactName: 'dartwing-service'   
+          ArtifactName: 'dartwing-dotnet_gatekeeper'   
 
 - stage: DEPLOY_QA
   displayName: DEPLOY QA
   dependsOn: BUILD
-  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+  condition: and(succeeded(), eq(variables['Build.SourceBranchName'], 'main'))
   
   pool: KubePool-qa
 
@@ -108,9 +108,10 @@ stages:
         deployAll: 'true'
         
         Project: dartwing
-        ApplicationName: dartwing-service 
+        ApplicationName: dotnet_gatekeeper
         ApplicationEnvironment: qa
-        Namespace: dartwing-service
+        Namespace: dartwing
+        certManager: true
         
         #ingress
         Hosts: 
@@ -123,8 +124,10 @@ stages:
         CpuLimit: "0.40"
         MemoryRequest: "150Mi"
         MemoryLimit: "400Mi"
-        Image: dotnetfarheapdockerregistry.azurecr.io/dartwing-service-$(Build.SourceBranchName):$(Build.BuildId)
+        Image: dotnetfarheapdockerregistry.azurecr.io/dartwing-dotnet_gatekeeper-$(Build.SourceBranchName):$(Build.BuildId)
         ImageRegistrySecret: dotnetfarheapdockerregistry
         Environments: 
           - name: ASPNETCORE_HTTP_PORTS
             value: 80
+          - name: PapertrailSettings__HostName
+            value: "dartwing-dotnet_gatekeeper-qa"          
