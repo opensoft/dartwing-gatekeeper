@@ -25,7 +25,7 @@ public static class AzureApiEndpoints
 
             var token = await GetAccessToken(client, "common", clientId, secret, code, redirectUri, ct);
             await CallGraphApi(client, token);
-            var folders = await new GraphApiAdapter("", token).GetFolders(ct);
+            var folders = await new GraphApiAdapter(token).GetMyFolders(ct);
 
             return Results.Json(folders);
         }).WithName("AzureAuthCallback").WithSummary("Azure auth callback");
@@ -49,7 +49,7 @@ public static class AzureApiEndpoints
 
             var token = await GetAccessToken(client, tenantId, clientId, secret, "", redirectUri, ct);
             await CallGraphApi(client, token);
-            var folders = await new GraphApiAdapter("", token).GetFolders(ct);
+            var folders = await new GraphApiAdapter(token).GetMyFolders(ct);
 
             return Results.Json(folders);
         }).WithName("AzureAuthServiceCallback").WithSummary("Azure service auth callback");

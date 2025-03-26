@@ -212,6 +212,11 @@ public sealed class KeyCloakHelper
         return resp.Item1;
     }
 
+    public string BuildProviderRedirectUrl(string provider)
+    {
+        return _settings.GetProviderAuthUrl(provider);
+    }
+
     public async ValueTask<string> GetProviderToken(string email, string identityProvider, CancellationToken ct)
     {
         if (_memoryCache.TryGetValue($"KeyCloak:ApiToken:{identityProvider}:{email}", out var token) && token is not null)

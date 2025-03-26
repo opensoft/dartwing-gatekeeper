@@ -6,6 +6,7 @@ using System.Text.Json.Serialization;
 using DartWing.ErpNext;
 using DartWing.Web.Api;
 using DartWing.Web.Auth;
+using DartWing.Web.Files;
 using DartWing.Web.KeyCloak;
 using DartWing.Web.Logging;
 using DartWing.Web.Users;
@@ -109,6 +110,7 @@ app.UseAuthorization();
 app.RegisterAzureApiEndpoints();
 app.RegisterUserApiEndpoints();
 app.RegisterCompanyApiEndpoints();
+app.RegisterFolderApiEndpoints();
 
 app.UseRouting();
 var t =

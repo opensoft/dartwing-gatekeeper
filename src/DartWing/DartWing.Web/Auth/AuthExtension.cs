@@ -37,6 +37,7 @@ public static class AuthExtension
             {
                 options.Authority = auth0Settings.GetAuthorityUrl();
                 options.Audience = auth0Settings.GetAudienceUrl();
+                
 
                 options.TokenValidationParameters = new TokenValidationParameters
                 {

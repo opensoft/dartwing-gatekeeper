@@ -30,5 +30,6 @@ public sealed class KeyCloakSettings
     public string GetUserRoleMappingUrl(string userId)=> $"https://{Domain}/admin/realms/{RealmName}/users/{userId}/role-mappings/clients/{ClientGuid}";
     public string GetAvailableRolesUrl(string userId)=> $"https://{Domain}/admin/realms/{RealmName}/ui-ext/available-roles/users/{userId}?first=0&max=100";
     public string GetUserByIdUrl(string userId)=> $"https://{Domain}/admin/realms/{RealmName}/users/{userId}";
+    public string GetProviderAuthUrl(string provider)  => $"https://{Domain}/realms/{RealmName}/protocol/openid-connect/auth?client_id={ClientId}&response_type=code&scope=openid&kc_idp_hint={provider}";
     
 }
