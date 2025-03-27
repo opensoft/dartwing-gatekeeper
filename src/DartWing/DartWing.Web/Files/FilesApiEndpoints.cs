@@ -135,7 +135,7 @@ public static class FilesApiEndpoints
             if (userCompanies.Data.All(x => x.User != userEmail)) return Results.Conflict();
             var companyDto = await erpNextService.GetCompanyAsync(company, ct);
             
-            var providerToken = await keyCloakHelper.GetProviderToken(userEmail, "azure_sharepoint", ct);
+            var providerToken = await keyCloakHelper.GetProviderToken(userEmail, "microsoft2", ct);
             if (string.IsNullOrEmpty(providerToken)) return Results.Conflict();
             using GraphApiAdapter adapter = new(providerToken);
             bool success;

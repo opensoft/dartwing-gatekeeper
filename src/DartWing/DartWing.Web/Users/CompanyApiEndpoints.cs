@@ -93,8 +93,8 @@ public static class CompanyApiEndpoints
             {
                 Providers =
                 [
-                    new CompanyProviderResponse { Name = "Microsoft SharePoint", Alias = "azure_sharepoint" },
-                    new CompanyProviderResponse { Name = "Google Drive", Alias = "google_onedrive" }
+                    new CompanyProviderResponse { Name = "Microsoft SharePoint", Alias = "microsoft2" },
+                    new CompanyProviderResponse { Name = "Google Drive", Alias = "google2" }
                 ]
             };
             logger.LogInformation("Get company providers {uId} {email}: OK {sw}", c.Data.Name, c.Data.Abbr, Stopwatch.GetElapsedTime(sw));
