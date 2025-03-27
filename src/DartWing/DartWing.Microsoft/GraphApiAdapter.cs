@@ -119,12 +119,10 @@ public sealed class GraphApiAdapter : IDisposable
         }
     }
     
-    public async Task<bool> UploadFile(string folderPath, string fileName, string fileContentType, Stream stream, CancellationToken ct)
+    public async Task<bool> UploadFile(string driveId, string[] paths, string fileName, string fileContentType, Stream stream, CancellationToken ct)
     {
-        var paths = folderPath.Split('/');
-        if (paths.Length == 0) return false;
+        if (paths.Length < 2) return false;
 
-        var driveId = paths[0];
         try
         {
             await _graphClient.Drives[driveId].GetAsync(cancellationToken: ct);
@@ -136,7 +134,7 @@ public sealed class GraphApiAdapter : IDisposable
 
         var itemId = "root";
 
-        for (var i = 1; i < paths.Length; i++)
+        for (var i = 2; i < paths.Length; i++)
         {
             var children = await _graphClient.Drives[driveId].Items[itemId].Children.GetAsync(cancellationToken: ct);
             if (children?.Value == null) return false;

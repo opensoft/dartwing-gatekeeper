@@ -46,7 +46,7 @@ public static class FilesApiEndpoints
             {
                 foreach (var dr in site.Drives)
                 {
-                    var allFolders = await adapter.GetFolders(dr.Id, false, ct);
+                    var allFolders = await adapter.GetFolders(dr.Id, true, ct);
                     if (allFolders.Count == 0) continue;
                     dr.Folders = allFolders;
                     dr.Site = site;
@@ -134,14 +134,24 @@ public static class FilesApiEndpoints
             var userCompanies = await erpNextService.GetUserCompaniesAsync(userEmail, ct);
             if (userCompanies.Data.All(x => x.User != userEmail)) return Results.Conflict();
             var companyDto = await erpNextService.GetCompanyAsync(company, ct);
+            if (string.IsNullOrEmpty(companyDto.Data.CustomMicrosoftSharepointFolderPath)) return Results.Conflict("Folder path is empty");
             
             var providerToken = await keyCloakHelper.GetProviderToken(userEmail, "microsoft2", ct);
             if (string.IsNullOrEmpty(providerToken)) return Results.Conflict();
+            
+            var clientToken = await graphApiHelper.GetClientAccessTokenFromUserToken(providerToken, ct);
+            using GraphApiAdapter clientAdapter = new(clientToken);
+            var allSites = await clientAdapter.GetAllSitesWithDrives(ct);
+            var paths = companyDto.Data.CustomMicrosoftSharepointFolderPath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+            var site = allSites.FirstOrDefault(x => x.Name == paths[0]);
+            var driveId = site?.Drives.FirstOrDefault(x => x.Name == paths[1])?.Id;
+            if (string.IsNullOrEmpty(driveId)) return Results.Conflict("Can't find drive");
+            
             using GraphApiAdapter adapter = new(providerToken);
             bool success;
             await using (var stream = file.OpenReadStream())
             {
-                success = await adapter.UploadFile(companyDto.Data.CustomMicrosoftSharepointFolderPath, file.FileName, file.ContentType, stream, ct);
+                success = await adapter.UploadFile(driveId, paths, file.FileName, file.ContentType, stream, ct);
             }
 
             return success? Results.Ok() : Results.Conflict();
