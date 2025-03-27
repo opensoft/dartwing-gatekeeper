@@ -13,9 +13,8 @@ public sealed class CompanyDto
     public string CustomType { get; set; }
     
     public string? CustomMicrosoftTenantId { get; set; }
-    public string? CustomMicrosoftTenantName { get; set; }
     public string? CustomMicrosoftSharepointFolderPath { get; set; }
-    public string? CustomMicrosoftDelegatedUser { get; set; }
+    public string? CustomMicrosoftSharepointUserPath { get; set; }
 }
 
 public sealed class CreateCompanyDto
@@ -28,9 +27,8 @@ public sealed class CreateCompanyDto
     public string CustomType { get; set; }
     
     public string? CustomMicrosoftTenantId { get; set; }
-    public string? CustomMicrosoftTenantName { get; set; }
     public string? CustomMicrosoftSharepointFolderPath { get; set; }
-    public string? CustomMicrosoftDelegatedUser { get; set; }
+    public string? CustomMicrosoftSharepointUserPath { get; set; }
 }
 
 public sealed class UpdateCompanyDto
@@ -41,9 +39,8 @@ public sealed class UpdateCompanyDto
     public UpdateCompanyDto(CompanyDto cData)
     {
         CustomMicrosoftTenantId = cData.CustomMicrosoftTenantId;
-        CustomMicrosoftTenantName = cData.CustomMicrosoftTenantName;
         CustomMicrosoftSharepointFolderPath = cData.CustomMicrosoftSharepointFolderPath;
-        CustomMicrosoftDelegatedUser = cData.CustomMicrosoftDelegatedUser;
+        CustomMicrosoftSharepointUserPath = cData.CustomMicrosoftSharepointUserPath;
         CustomType = cData.CustomType;
         Domain = cData.Domain;
         IsEnabled = cData.IsEnabled;
@@ -58,9 +55,8 @@ public sealed class UpdateCompanyDto
     public string CustomType { get; set; }
     
     public string? CustomMicrosoftTenantId { get; set; }
-    public string? CustomMicrosoftTenantName { get; set; }
     public string? CustomMicrosoftSharepointFolderPath { get; set; }
-    public string? CustomMicrosoftDelegatedUser { get; set; }
+    public string? CustomMicrosoftSharepointUserPath { get; set; }
 }
 
 public sealed class DeleteCompanyDto

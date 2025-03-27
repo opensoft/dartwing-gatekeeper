@@ -15,7 +15,7 @@ public sealed class CompanyResponse
         Country = erpCompanyData.Country;
         CompanyType = erpCompanyData.CustomType;
         MicrosoftTenantId = erpCompanyData.CustomMicrosoftTenantId;
-        MicrosoftTenantName = erpCompanyData.CustomMicrosoftTenantName;
+        MicrosoftSharepointUserPath = erpCompanyData.CustomMicrosoftSharepointUserPath;
         MicrosoftSharepointFolderPath = erpCompanyData.CustomMicrosoftSharepointFolderPath;
         IsEnabled = erpCompanyData.IsEnabled;
     }
@@ -30,8 +30,8 @@ public sealed class CompanyResponse
     public string CompanyType { get; set; }
     
     public string? MicrosoftTenantId { get; set; }
-    public string? MicrosoftTenantName { get; set; }
     public string? MicrosoftSharepointFolderPath { get; set; }
+    public string? MicrosoftSharepointUserPath { get; set; }
 }
 
 public sealed class CompanyProvidersResponse

@@ -1,5 +1,6 @@
 using Microsoft.Graph;
 using Microsoft.Graph.Models;
+using Microsoft.Graph.Models.ODataErrors;
 
 namespace DartWing.Microsoft;
 
@@ -17,6 +18,12 @@ public sealed class GraphApiAdapter : IDisposable
         var me = await _graphClient.Me.GetAsync(cancellationToken: ct);
         return me;
     }
+    
+    public async Task<DriveCollectionResponse?> MyDrives(CancellationToken ct)
+    {
+        var drives = await _graphClient.Me.Drives.GetAsync(cancellationToken: ct);
+        return drives;
+    }
 
     public async Task<List<MicrosoftFolderInfo>> GetMyFolders(CancellationToken ct)
     {
@@ -27,9 +34,16 @@ public sealed class GraphApiAdapter : IDisposable
 
     public async Task<List<MicrosoftFolderInfo>> GetFolders(string driveId, bool recursive, CancellationToken ct)
     {
-        var drive = await _graphClient.Drives[driveId].GetAsync(cancellationToken: ct);
-        var allFolders = await GetAllFolders(drive, recursive, ct);
-        return allFolders;
+        try
+        {
+            var drive = await _graphClient.Drives[driveId].GetAsync(cancellationToken: ct);
+            var allFolders = await GetAllFolders(drive, recursive, ct);
+            return allFolders;
+        }
+        catch (ODataError e)
+        {
+            return [];
+        }
     }
 
     public async Task<MicrosoftSiteInfo[]?> GetAllSites(CancellationToken ct)
@@ -54,6 +68,7 @@ public sealed class GraphApiAdapter : IDisposable
                 if (d == null) continue;
                 st.Drives.Add(new MicrosoftDriveInfo(d.Id, d.Name));
             }
+            siteList.Add(st);
         }
 
         return siteList;
@@ -103,6 +118,37 @@ public sealed class GraphApiAdapter : IDisposable
             if (recursive) await FetchFoldersRecursive(driveId, item.Id!, item.Id!, folders, true, ct);
         }
     }
+    
+    public async Task<bool> UploadFile(string folderPath, string fileName, string fileContentType, Stream stream, CancellationToken ct)
+    {
+        var paths = folderPath.Split('/');
+        if (paths.Length == 0) return false;
+
+        var driveId = paths[0];
+        try
+        {
+            await _graphClient.Drives[driveId].GetAsync(cancellationToken: ct);
+        }
+        catch (ODataError e)
+        {
+            return false;
+        }
+
+        var itemId = "root";
+
+        for (var i = 1; i < paths.Length; i++)
+        {
+            var children = await _graphClient.Drives[driveId].Items[itemId].Children.GetAsync(cancellationToken: ct);
+            if (children?.Value == null) return false;
+            var it = children.Value.FirstOrDefault(x => x.Name == paths[i]);
+            if (it == null) return false;
+            itemId = it.Id;
+        }
+        if (itemId == null) return false;
+        await _graphClient.Drives[driveId].Items[itemId].ItemWithPath(fileName).Content.PutAsync(stream, cancellationToken: ct);
+        
+        return true;
+    }
 
     public sealed class MicrosoftFolderInfo
     {
@@ -143,4 +189,6 @@ public sealed class GraphApiAdapter : IDisposable
     {
         _graphClient.Dispose();
     }
+
+
 }

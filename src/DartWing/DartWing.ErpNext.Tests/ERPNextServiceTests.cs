@@ -81,9 +81,7 @@ public sealed class ERPNextServiceTests
             DefaultCurrency = "USD",
             Domain = "Test Domain" + Random.Shared.Next(10000),
             CustomMicrosoftSharepointFolderPath = "root:",
-            CustomMicrosoftDelegatedUser = "service.dartwing@opensoft.one",
             CustomMicrosoftTenantId = Guid.NewGuid().ToString(),
-            CustomMicrosoftTenantName = "defaultPermissions",
             Country = "USA"
         };
         
