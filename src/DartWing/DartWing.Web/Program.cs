@@ -44,7 +44,7 @@ builder.Services.AddSwaggerGen(options =>
         Type = SecuritySchemeType.OAuth2,
         Flows = new OpenApiOAuthFlows
         {
-            /*Implicit = new OpenApiOAuthFlow
+            Implicit = new OpenApiOAuthFlow
             {
                 AuthorizationUrl = new Uri($"https://{builder.Configuration["KeyCloak:Domain"]}/realms/{builder.Configuration["KeyCloak:RealmName"]}/protocol/openid-connect/auth"),
                 Scopes = new Dictionary<string, string>
@@ -54,7 +54,7 @@ builder.Services.AddSwaggerGen(options =>
                     {"email", "Email"},
                     {"offline_access", "Offline Access"},
                 }
-            }*/
+            }
         }
     });
     
