@@ -12,12 +12,14 @@ namespace DartWing.KeyCloak;
 
 public sealed class AuthServerSecurityKeysHelper
 {
+    private readonly ILogger<AuthServerSecurityKeysHelper> _logger;
     private readonly IMemoryCache _memoryCache;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly KeyCloakSettings _settings;
 
-    public AuthServerSecurityKeysHelper(IMemoryCache memoryCache, IHttpClientFactory httpClientFactory, KeyCloakSettings settings)
+    public AuthServerSecurityKeysHelper(ILogger<AuthServerSecurityKeysHelper> logger, IMemoryCache memoryCache, IHttpClientFactory httpClientFactory, KeyCloakSettings settings)
     {
+        _logger = logger;
         _memoryCache = memoryCache;
         _httpClientFactory = httpClientFactory;
         _settings = settings;
@@ -28,10 +30,14 @@ public sealed class AuthServerSecurityKeysHelper
         if (_memoryCache.TryGetValue("KeyCloak:GetSigningKeys", out var obj) && obj != null)
             return (IList<SecurityKey>)obj;
 
+        var sw = Stopwatch.GetTimestamp();
         var client = _httpClientFactory.CreateClient("KeyCloakKeysClient");
-        var response = await client.GetStringAsync(_settings.GetSigningKeysUrl(), ct).ConfigureAwait(false);
+        var url = _settings.GetSigningKeysUrl();
+        var response = await client.GetStringAsync(url, ct).ConfigureAwait(false);
         var keys = new JsonWebKeySet(response).GetSigningKeys();
         _memoryCache.Set("KeyCloak:GetSigningKeys", keys, TimeSpan.FromHours(4));
+        
+        _logger.LogInformation("Get keycloak signing keys {k} qty={qt} {el}", url, keys.Count, Stopwatch.GetElapsedTime(sw));
 
         return keys;
     }
