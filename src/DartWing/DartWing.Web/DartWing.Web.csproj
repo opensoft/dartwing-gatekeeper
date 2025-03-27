@@ -4,7 +4,8 @@
         <TargetFramework>net9.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
-        <AssemblyVersion>0.1.0.22</AssemblyVersion>
+        <AssemblyVersion>0.1.0.23</AssemblyVersion>
+        <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     </PropertyGroup>
 
     <ItemGroup>
@@ -20,6 +21,12 @@
       <ProjectReference Include="..\DartWing.Google\DartWing.Google.csproj" />
       <ProjectReference Include="..\DartWing.KeyCloak\DartWing.KeyCloak.csproj" />
       <ProjectReference Include="..\DartWing.Microsoft\DartWing.Microsoft.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Content Include="..\.dockerignore">
+        <Link>.dockerignore</Link>
+      </Content>
     </ItemGroup>
 
 </Project>

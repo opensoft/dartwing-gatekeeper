@@ -59,10 +59,6 @@ stages:
         cat > $(build.artifactstagingdirectory)/Dockerfile <<EOF 
             FROM $(FROM)
 
-            ENV DOTNET_TieredPGO=1
-            ENV DOTNET_TC_QuickJitForLoops=1
-            ENV DOTNET_ReadyToRun=0
-
             WORKDIR /app
             COPY ./DartWing /app
 
