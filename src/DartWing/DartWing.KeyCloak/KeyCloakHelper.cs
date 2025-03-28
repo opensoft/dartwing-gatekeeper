@@ -38,7 +38,6 @@ public sealed class AuthServerSecurityKeysHelper
         _memoryCache.Set("KeyCloak:GetSigningKeys", keys, TimeSpan.FromHours(4));
         
         _logger.LogInformation("Get keycloak signing keys {k} qty={qt} {el}", url, keys.Count, Stopwatch.GetElapsedTime(sw));
-        Console.WriteLine($"Get keycloak signing keys {url} qty={keys.Count} {Stopwatch.GetElapsedTime(sw)}");
 
         return keys;
     }

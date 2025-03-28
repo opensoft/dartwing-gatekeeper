@@ -30,6 +30,9 @@ public static class FilesApiEndpoints
             if (userId == null) return Results.BadRequest("User id is null");
             var keyCloakUser = await keyCloakHelper.GetUserById(userId, ct);
             if (keyCloakUser == null) return Results.Conflict("KeyCloak user not found");
+            var userCompanies = await erpNextService.GetUserCompaniesAsync(userEmail, ct);
+            var companyDto = await erpNextService.GetCompanyAsync(company, ct);
+            if (companyDto?.Data == null || userCompanies.Data.All(x => x.User != userEmail)) return Results.Conflict();
             
             var providerToken = await keyCloakHelper.GetProviderToken(userEmail, request.Provider, ct);
             if (string.IsNullOrEmpty(providerToken)) return Results.Ok(new CdFolderResponse(keyCloakHelper.BuildProviderRedirectUrl(request.Provider)));
@@ -46,10 +49,10 @@ public static class FilesApiEndpoints
             {
                 foreach (var dr in site.Drives)
                 {
+                    dr.Site = site;
                     var allFolders = await adapter.GetFolders(dr.Id, true, ct);
                     if (allFolders.Count == 0) continue;
                     dr.Folders = allFolders;
-                    dr.Site = site;
                     acceptedDrives.Add(dr);
                 }
             }
