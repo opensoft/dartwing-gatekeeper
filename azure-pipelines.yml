@@ -71,7 +71,7 @@ stages:
           containerRegistry: dotNetFarheap
           repository: 'dartwing-dotnet_gatekeeper-$(Build.SourceBranchName)'
           Dockerfile: '$(build.artifactstagingdirectory)/Dockerfile'
-          #buildContext: '$(build.artifactstagingdirectory)/'
+          buildContext: 'src/DartWing'
           tags: |
             $(Build.BuildId)
             latest
