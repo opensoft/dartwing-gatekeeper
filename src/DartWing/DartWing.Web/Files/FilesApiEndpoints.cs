@@ -32,7 +32,7 @@ public static class FilesApiEndpoints
             if (keyCloakUser == null) return Results.Conflict("KeyCloak user not found");
             var userCompanies = await erpNextService.GetUserCompaniesAsync(userEmail, ct);
             var companyDto = await erpNextService.GetCompanyAsync(company, ct);
-            if (companyDto?.Data == null || userCompanies.Data.All(x => x.User != userEmail)) return Results.Conflict();
+            //if (companyDto?.Data == null || userCompanies.Data.All(x => x.User != userEmail)) return Results.Conflict();
             
             var providerToken = await keyCloakHelper.GetProviderToken(userEmail, request.Provider, ct);
             if (string.IsNullOrEmpty(providerToken)) return Results.Ok(new CdFolderResponse(keyCloakHelper.BuildProviderRedirectUrl(request.Provider)));
