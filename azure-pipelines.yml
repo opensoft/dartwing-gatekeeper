@@ -51,11 +51,11 @@ stages:
             RUN dotnet restore "DartWing.Web/DartWing.Web.csproj"
             COPY . .
             WORKDIR "/src/DartWing.Web"
-            RUN mkdir -p /app/build; dotnet build "DartWing.Web.csproj" -c $BUILD_CONFIGURATION -o /app/build
+            RUN dotnet build "DartWing.Web.csproj" -c \$BUILD_CONFIGURATION -o /app/build
             
             FROM build AS publish
             ARG BUILD_CONFIGURATION=Release
-            RUN dotnet publish "DartWing.Web.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+            RUN dotnet publish "DartWing.Web.csproj" -c \$BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
             
             FROM base AS final
             WORKDIR /app
