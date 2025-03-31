@@ -98,7 +98,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
+app.UseRouting();
 app.UseSwagger();
 app.UseSwaggerUI(settings =>
 {
@@ -107,14 +107,14 @@ app.UseSwaggerUI(settings =>
     settings.OAuthUsePkce();
 });
 
-app.UseAuthentication();
-app.UseAuthorization();
+
 app.RegisterAzureApiEndpoints();
 app.RegisterUserApiEndpoints();
 app.RegisterCompanyApiEndpoints();
 app.RegisterFolderApiEndpoints();
+app.UseAuthentication();
+app.UseAuthorization();
 
-app.UseRouting();
 var t =
     $"v.{typeof(Program).Assembly.GetName().Version}; {typeof(Program).Assembly.GetCustomAttribute<TargetFrameworkAttribute>()?.FrameworkName}; {System.Runtime.InteropServices.RuntimeInformation.OSDescription}";
 

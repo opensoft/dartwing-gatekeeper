@@ -181,6 +181,10 @@ public sealed class KeyCloakHelper
     
     public async Task<UserResponse?> GetUserById(string userId, CancellationToken ct)
     {
+        var userIdKey = "KeyCloakUser:" + userId;
+        if (_memoryCache.TryGetValue(userIdKey, out UserResponse? userResponse) && userResponse != null)
+            return userResponse;
+        
         var sw = Stopwatch.GetTimestamp();
         var accessToken = await GetAccessToken(ct);
         var client = _httpClientFactory.CreateClient("KeyCloak");
@@ -189,7 +193,9 @@ public sealed class KeyCloakHelper
 
         var user = await Send<UserResponse>(client, url, accessToken, false, ct);
         
-        _logger.LogInformation("KeyCloak get user by id {id} {u}", userId, user.Email);
+        _logger.LogInformation("KeyCloak get user by id {id} {u} {sw}", userId, user?.Email, Stopwatch.GetElapsedTime(sw));
+        
+        if (user?.Id != null) _memoryCache.Set(userIdKey, user, TimeSpan.FromMinutes(1));
     
         return user;
     }
@@ -213,7 +219,9 @@ public sealed class KeyCloakHelper
             }
         };
         var resp = await Send(client, HttpMethod.Put, url, accessToken, userUpdateData, ct);
-    
+        var userIdKey = "KeyCloakUser:" + userId;
+        _memoryCache.Remove(userIdKey);
+        
         return resp.Item1;
     }
 
@@ -251,9 +259,9 @@ public sealed class KeyCloakHelper
         var body = await responseMessage.Content.ReadAsByteArrayAsync(ct).ConfigureAwait(false);
         var tokenResponse = JsonSerializer.Deserialize<AuthTokenResponse>(body)!;
 
-        if (tokenResponse.ExpiresIn > 200)
+        if (tokenResponse.ExpiresIn > 100)
             _memoryCache.Set($"KeyCloak:ApiToken:{identityProvider}:{email}", tokenResponse.AccessToken,
-                TimeSpan.FromSeconds(tokenResponse.ExpiresIn - 150));
+                TimeSpan.FromSeconds(tokenResponse.ExpiresIn - 60));
 
         _logger.LogInformation(
             "KeyCloak get {pr} {type} token for client={cl} user={usr} expIn={ex}sec {sw}",

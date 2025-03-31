@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using DartWing.KeyCloak;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -35,7 +36,7 @@ public sealed class GraphApiTests
 
         try
         {
-            var adapter = new GraphApiAdapter(token);
+            var adapter = new GraphApiAdapter(token, new MemoryCache(new MemoryCacheOptions()));
             var sites = await adapter.GetAllSites(CancellationToken.None);
             
             var allDrives = new List<string>();
@@ -69,15 +70,15 @@ public sealed class GraphApiTests
 
         Assert.IsNotNull(token);
 
-        var adapter = new GraphApiAdapter(token);
+        var adapter = new GraphApiAdapter(token, new MemoryCache(new MemoryCacheOptions()));
         try
         {
             var me = await adapter.Me(CancellationToken.None);
             var my = await adapter.GetMyFolders(CancellationToken.None);
             var sites = await adapter.GetAllSites(CancellationToken.None);
             var drives = await adapter.GetAllDrives(CancellationToken.None);
-            var folders = await adapter.GetFolders(drives[0].Id, true, CancellationToken.None);
-            var folders2 = await adapter.GetFolders("b!EqFpt3Qt40-22UOfOogtmzN05V8GV8tHvZs77CRfPJBZWOwcg3WBT6SG5eTEDc6i", true, CancellationToken.None);
+            var folders = await adapter.GetAllFolders(drives[0].Id, recursive: true, ct: CancellationToken.None);
+            var folders2 = await adapter.GetAllFolders("b!EqFpt3Qt40-22UOfOogtmzN05V8GV8tHvZs77CRfPJBZWOwcg3WBT6SG5eTEDc6i", recursive: true, ct: CancellationToken.None);
             
         }
         catch (Exception e)

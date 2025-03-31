@@ -11,7 +11,7 @@ public static class UserApiEndpoints
 {
     public static void RegisterUserApiEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        var group = endpoints.MapGroup("api/user/").WithTags("User");
+        var group = endpoints.MapGroup("api/user/").WithTags("User").RequireAuthorization();;
 
         group.MapPost("", async ([FromBody] UserInfoRequest user,
             [FromServices] ILogger<Program> logger,

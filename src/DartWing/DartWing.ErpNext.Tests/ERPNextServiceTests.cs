@@ -58,7 +58,7 @@ public sealed class ERPNextServiceTests
         
         var erpC = await service.CreateCompanyAsync(c, CancellationToken.None);
         
-        return (c, erpC?.Data);
+        return (c, erpC);
     }
 
     [TestMethod]
@@ -87,9 +87,9 @@ public sealed class ERPNextServiceTests
         
         var erpuC = await service.UpdateCompanyAsync(c.CompanyName, uc, CancellationToken.None);
         
-        IsNotNull(erpuC?.Data);
-        AreEqual(uc.DefaultCurrency, erpuC.Data.DefaultCurrency);
-        AreEqual(uc.Domain, erpuC.Data.Domain);
+        IsNotNull(erpuC);
+        AreEqual(uc.DefaultCurrency, erpuC.DefaultCurrency);
+        AreEqual(uc.Domain, erpuC.Domain);
         
         var success = await service.DeleteCompanyAsync(c.CompanyName, CancellationToken.None);
         IsTrue(success);

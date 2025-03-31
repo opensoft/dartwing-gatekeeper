@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using DartWing.Microsoft;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace DartWing.Web.Api;
 
@@ -15,6 +16,7 @@ public static class AzureApiEndpoints
 
         group.MapGet("", async ([FromQuery] string code,
             [FromServices] IHttpClientFactory httpClientFactory,
+            [FromServices] IMemoryCache memoryCache,
             CancellationToken ct) =>
         {
             var clientId = "d177cf09-932e-4590-a6b3-47f6ac1a9691";
@@ -25,13 +27,14 @@ public static class AzureApiEndpoints
 
             var token = await GetAccessToken(client, "common", clientId, secret, code, redirectUri, ct);
             await CallGraphApi(client, token);
-            var folders = await new GraphApiAdapter(token).GetMyFolders(ct);
+            var folders = await new GraphApiAdapter(token, memoryCache).GetMyFolders(ct);
 
             return Results.Json(folders);
         }).WithName("AzureAuthCallback").WithSummary("Azure auth callback");
         
         group.MapGet("service", async ([FromQuery] string code,
             [FromServices] IHttpClientFactory httpClientFactory,
+            [FromServices] IMemoryCache memoryCache,
             CancellationToken ct) =>
         {
             var clientId = "b8cd1e83-acee-4fa7-a7a4-b8b6ad15aa02";
@@ -49,7 +52,7 @@ public static class AzureApiEndpoints
 
             var token = await GetAccessToken(client, tenantId, clientId, secret, "", redirectUri, ct);
             await CallGraphApi(client, token);
-            var folders = await new GraphApiAdapter(token).GetMyFolders(ct);
+            var folders = await new GraphApiAdapter(token, memoryCache).GetMyFolders(ct);
 
             return Results.Json(folders);
         }).WithName("AzureAuthServiceCallback").WithSummary("Azure service auth callback");

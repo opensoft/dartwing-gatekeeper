@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Graph;
 using Microsoft.Graph.Models;
 using Microsoft.Graph.Models.ODataErrors;
@@ -6,44 +7,41 @@ namespace DartWing.Microsoft;
 
 public sealed class GraphApiAdapter : IDisposable
 {
+    private readonly string _tokenKey;
+    private readonly IMemoryCache _memoryCache;
     private readonly GraphServiceClient _graphClient;
 
-    public GraphApiAdapter(string token)
+    public GraphApiAdapter(string token, IMemoryCache memoryCache)
     {
+        _tokenKey = $"{token.Length}_{token[..8]}{token[8..]}";
+        _memoryCache = memoryCache;
         _graphClient = new GraphServiceClient(new CustomAuthProvider(token));
     }
 
+    
+    
     public async Task<User?> Me(CancellationToken ct)
     {
         var me = await _graphClient.Me.GetAsync(cancellationToken: ct);
         return me;
     }
     
-    public async Task<DriveCollectionResponse?> MyDrives(CancellationToken ct)
+    public async Task<MicrosoftDriveInfo[]?> Drives(CancellationToken ct)
     {
-        var drives = await _graphClient.Me.Drives.GetAsync(cancellationToken: ct);
-        return drives;
+        var drivesKey = "Microsoft:Drives:" + _tokenKey;
+        if (_memoryCache.TryGetValue(drivesKey, out MicrosoftDriveInfo[]? drs) && drs != null) return drs;
+        
+        var drives = await _graphClient.Drives.GetAsync(cancellationToken: ct);
+        var result = drives?.Value?.Select(s => new MicrosoftDriveInfo(s.Id, s.Name)).ToArray();
+        if (result != null) _memoryCache.Set(drivesKey, result, TimeSpan.FromSeconds(60));
+        return result;
     }
 
     public async Task<List<MicrosoftFolderInfo>> GetMyFolders(CancellationToken ct)
     {
         var meDrive = await _graphClient.Me.Drive.GetAsync(cancellationToken: ct);
-        var allFolders = await GetAllFolders(meDrive, false, ct);
+        var allFolders = await GetAllFolders(meDrive!.Id!, ct: ct);
         return allFolders;
-    }
-
-    public async Task<List<MicrosoftFolderInfo>> GetFolders(string driveId, bool recursive, CancellationToken ct)
-    {
-        try
-        {
-            var drive = await _graphClient.Drives[driveId].GetAsync(cancellationToken: ct);
-            var allFolders = await GetAllFolders(drive, recursive, ct);
-            return allFolders;
-        }
-        catch (ODataError e)
-        {
-            return [];
-        }
     }
 
     public async Task<MicrosoftSiteInfo[]?> GetAllSites(CancellationToken ct)
@@ -52,33 +50,60 @@ public sealed class GraphApiAdapter : IDisposable
         return sites?.Value?.Select(s => new MicrosoftSiteInfo(s.Id, s.Name)).ToArray();
     }
 
-    public async Task<List<MicrosoftSiteInfo>?> GetAllSitesWithDrives(CancellationToken ct)
+    public async Task<List<MicrosoftSiteInfo>> GetAllSitesWithDrives(CancellationToken ct)
     {
-        var sites = await _graphClient.Sites.GetAsync(cancellationToken: ct);
-        if (sites?.Value == null) return [];
-        var siteList = new List<MicrosoftSiteInfo>();
-        foreach (var s in sites.Value)
+        SiteCollectionResponse? sites = null;
+        var sitesKey = "Microsoft:Sites:" + _tokenKey;
+        if (_memoryCache.TryGetValue(sitesKey, out SiteCollectionResponse? sts) && sts != null)
         {
-            if (s == null) continue;
-            var siteDrives = await _graphClient.Sites[s.Id].Drives.GetAsync(cancellationToken: ct);
-            if (siteDrives?.Value == null || siteDrives.Value.Count == 0) continue;
-            var st = new MicrosoftSiteInfo(s.Id, s.Name);
-            foreach (var d in siteDrives.Value)
-            {
-                if (d == null) continue;
-                st.Drives.Add(new MicrosoftDriveInfo(d.Id, d.Name));
-            }
-            siteList.Add(st);
+            sites = sts;
         }
+        else
+        {
+            sites = await _graphClient.Sites.GetAsync(cancellationToken: ct);
+            _memoryCache.Set(sitesKey, sites, TimeSpan.FromSeconds(300));
+        }
+        if (sites?.Value == null) return [];
+        List<Task<MicrosoftSiteInfo?>> tasks = [];
+        foreach (var s in sites.Value.Where(s => !s.Id.Contains("-my.sharepoint.com,")))
+        {
+            var driveTask = GetDrivesPrivate(s, ct);
+            tasks.Add(driveTask);
+            if (tasks.Count(x => !x.IsCompleted) > 6)
+            {
+                await Task.WhenAny(tasks.Where(x => !x.IsCompleted));
+            }
+        }
+        
+        await Task.WhenAll(tasks);
 
-        return siteList;
+        return tasks.Select(x => x.Result).Where(x => x != null).ToList();
     }
 
+    private async Task<MicrosoftSiteInfo?> GetDrivesPrivate(Site s, CancellationToken ct)
+    {
+        var siteDrives = await _graphClient.Sites[s.Id].Drives.GetAsync(cancellationToken: ct);
+        if (siteDrives?.Value == null || siteDrives.Value.Count == 0) return null;
+        var st = new MicrosoftSiteInfo(s.Id, s.Name);
+        foreach (var d in siteDrives.Value)
+        {
+            if (d == null) continue;
+            st.Drives.Add(new MicrosoftDriveInfo(d.Id, d.Name));
+        }
+        return st;
+    }
 
     public async Task<MicrosoftDriveInfo[]?> GetAllDrives(string siteId, CancellationToken ct)
     {
-        var drives = await _graphClient.Sites[siteId].Drives.GetAsync(cancellationToken: ct);
-        return drives?.Value?.Select(s => new MicrosoftDriveInfo(s.Id, s.Name)).ToArray();
+        try
+        {
+            var drives = await _graphClient.Sites[siteId].Drives.GetAsync(cancellationToken: ct);
+            return drives?.Value?.Select(s => new MicrosoftDriveInfo(s.Id, s.Name)).ToArray();
+        }
+        catch (ODataError)
+        {
+            return [];
+        }
     }
 
     public async Task<MicrosoftDriveInfo[]?> GetAllDrives(CancellationToken ct)
@@ -87,11 +112,12 @@ public sealed class GraphApiAdapter : IDisposable
         return drives?.Value?.Select(s => new MicrosoftDriveInfo(s.Id, s.Name)).ToArray();
     }
 
-    private async Task<List<MicrosoftFolderInfo>> GetAllFolders(Drive drive, bool recursive, CancellationToken ct)
+    public async Task<List<MicrosoftFolderInfo>> GetAllFolders(string driveId, string itemId = "root",
+        bool recursive = false, CancellationToken ct = default)
     {
         List<MicrosoftFolderInfo> folders = [];
 
-        await FetchFoldersRecursive(drive.Id!, "root", null, folders, recursive, ct);
+        await FetchFoldersRecursive(driveId, itemId, null, folders, recursive, ct);
 
         return folders;
     }
@@ -99,52 +125,53 @@ public sealed class GraphApiAdapter : IDisposable
     private async Task FetchFoldersRecursive(string driveId, string itemId, string? parentFolderId,
         List<MicrosoftFolderInfo> folders, bool recursive, CancellationToken ct)
     {
-        var children = await _graphClient.Drives[driveId].Items[itemId].Children.GetAsync(cancellationToken: ct);
-
-        if (children?.Value == null) return;
-        foreach (var item in children.Value)
+        try
         {
-            if (item.Folder == null) continue;
-            var folderInfo = new MicrosoftFolderInfo
+            var drivesKey = $"Microsoft:Drives:{_tokenKey}:Folders:{driveId}:{itemId}";
+            DriveItemCollectionResponse? children = null;
+            if (_memoryCache.TryGetValue(drivesKey, out DriveItemCollectionResponse? ch) && ch != null)
             {
-                Id = item.Id!,
-                Name = item.Name!,
-                ParentFolderId = parentFolderId,
-                DriveId = driveId
-            };
+                children = ch;
+            }
+            else
+            {
+                children = await _graphClient.Drives[driveId].Items[itemId].Children.GetAsync(cancellationToken: ct);
+                if (children?.Value != null) _memoryCache.Set(drivesKey, children, TimeSpan.FromSeconds(30));
+            }
 
-            folders.Add(folderInfo);
+            if (children?.Value == null) return;
+            foreach (var item in children.Value)
+            {
+                if (item.Folder == null) continue;
+                var folderInfo = new MicrosoftFolderInfo
+                {
+                    Id = item.Id!,
+                    Name = item.Name!,
+                    ParentFolderId = parentFolderId,
+                    DriveId = driveId
+                };
 
-            if (recursive) await FetchFoldersRecursive(driveId, item.Id!, item.Id!, folders, true, ct);
+                folders.Add(folderInfo);
+
+                if (recursive) await FetchFoldersRecursive(driveId, item.Id!, item.Id!, folders, true, ct);
+            }
+        }
+        catch (ODataError)
+        {
         }
     }
     
-    public async Task<bool> UploadFile(string driveId, string[] paths, string fileName, string fileContentType, Stream stream, CancellationToken ct)
+    public async Task<bool> UploadFile(string driveId, string itemId, string fileName, string fileContentType, Stream stream, CancellationToken ct)
     {
-        if (paths.Length < 2) return false;
-
         try
         {
-            await _graphClient.Drives[driveId].GetAsync(cancellationToken: ct);
+            await _graphClient.Drives[driveId].Items[itemId].ItemWithPath(fileName).Content.PutAsync(stream, cancellationToken: ct);
         }
         catch (ODataError e)
         {
             return false;
         }
 
-        var itemId = "root";
-
-        for (var i = 2; i < paths.Length; i++)
-        {
-            var children = await _graphClient.Drives[driveId].Items[itemId].Children.GetAsync(cancellationToken: ct);
-            if (children?.Value == null) return false;
-            var it = children.Value.FirstOrDefault(x => x.Name == paths[i]);
-            if (it == null) return false;
-            itemId = it.Id;
-        }
-        if (itemId == null) return false;
-        await _graphClient.Drives[driveId].Items[itemId].ItemWithPath(fileName).Content.PutAsync(stream, cancellationToken: ct);
-        
         return true;
     }
 

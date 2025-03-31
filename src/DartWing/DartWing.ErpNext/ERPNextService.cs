@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using DartWing.ErpNext.Dto;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 
 namespace DartWing.ErpNext;
@@ -11,11 +12,13 @@ public sealed class ERPNextService
 {
     private readonly ILogger<ERPNextService> _logger;
     private readonly HttpClient _httpClient;
+    private readonly IMemoryCache _memoryCache;
 
-    public ERPNextService(ILogger<ERPNextService> logger, HttpClient httpClient)
+    public ERPNextService(ILogger<ERPNextService> logger, HttpClient httpClient, IMemoryCache memoryCache)
     {
         _logger = logger;
         _httpClient = httpClient;
+        _memoryCache = memoryCache;
     }
 
     #region User CRUD
@@ -61,12 +64,19 @@ public sealed class ERPNextService
     
     #region User Permissions
 
+    private static string UserPermKey(string email) => "erpNext:UserPerm:" + email;
     public async Task<UserPermissionsDto?> GetUserCompaniesAsync(string email, CancellationToken ct)
     {
+        var upKey = UserPermKey(email);
+        if (_memoryCache.TryGetValue(upKey, out UserPermissionsDto? userPermissions) && userPermissions != null) return userPermissions;
+        
         var sw = Stopwatch.GetTimestamp();
         var url = $"/api/resource/User Permission?filters=[[\"user\", \"=\", \"{email}\"], [\"allow\", \"=\", \"Company\"]]&fields=[\"for_value\", \"name\", \"user\", \"custom_companyrole\"]";
         using var response = await _httpClient.GetAsync(url, ct);
-        return await HandleResponse<UserPermissionsDto>(response, sw, ct);
+        var result = await HandleResponse<UserPermissionsDto>(response, sw, ct);
+
+        if (result != null) _memoryCache.Set(upKey, result, TimeSpan.FromMinutes(5));
+        return result;
     }
     
     public async Task<UserPermissionDto?> AddUserInCompanyAsync(string email, string companyName, string role, CancellationToken ct)
@@ -85,7 +95,9 @@ public sealed class ERPNextService
         var content = SerializeJson(dto);
 
         using var response = await _httpClient.PostAsync(url, content, ct);
-        return await HandleResponse<UserPermissionDto>(response, sw, ct);
+        var result = await HandleResponse<UserPermissionDto>(response, sw, ct);
+        _memoryCache.Remove(UserPermKey(email));
+        return result;
     }
     
     public async Task<bool> RemoveUserFromCompanyAsync(string email, string companyName, string role, CancellationToken ct)
@@ -99,7 +111,9 @@ public sealed class ERPNextService
         
         var url = $"/api/resource/User Permission/{permission.Name}";
         var response = await _httpClient.DeleteAsync(url, ct);
-        return await HandleResponse<bool>(response, sw, ct);
+        var result = await HandleResponse<bool>(response, sw, ct);
+        _memoryCache.Remove(UserPermKey(email));
+        return result;
     }
     
     #endregion
@@ -127,30 +141,46 @@ public sealed class ERPNextService
     
     #region Company CRUD
     
-    public async Task<CompanyResponseDto<CompanyDto>?> CreateCompanyAsync(CreateCompanyDto companyDto, CancellationToken ct)
+    private static string CompanyKey(string companyName) => "erpNext:Company:" + companyName;
+    
+    public async Task<CompanyDto?> CreateCompanyAsync(CreateCompanyDto companyDto, CancellationToken ct)
     {
         var sw = Stopwatch.GetTimestamp();
         const string url = "/api/resource/Company";
         var content = SerializeJson(companyDto);
         var response = await _httpClient.PostAsync(url, content, ct);
-        return await HandleResponse<CompanyResponseDto<CompanyDto>>(response, sw, ct);
+        var result = await HandleResponse<CompanyResponseDto<CompanyDto>>(response, sw, ct);
+
+        if (result?.Data != null)
+            _memoryCache.Set(CompanyKey(companyDto.CompanyName), result.Data, TimeSpan.FromMinutes(5));
+        
+        return result?.Data;
     }
 
-    public async Task<CompanyResponseDto<CompanyDto>?> GetCompanyAsync(string companyName, CancellationToken ct)
+    public async Task<CompanyDto?> GetCompanyAsync(string companyName, CancellationToken ct)
     {
+        var companyKey = CompanyKey(companyName);
+        if (_memoryCache.TryGetValue(companyKey, out CompanyDto? cDto) && cDto != null) return cDto;
+        
         var sw = Stopwatch.GetTimestamp();
         var url = $"/api/resource/Company/{Uri.EscapeDataString(companyName)}";
         using var response = await _httpClient.GetAsync(url, ct);
-        return await HandleResponse<CompanyResponseDto<CompanyDto>>(response, sw, ct);
+        var result = await HandleResponse<CompanyResponseDto<CompanyDto>>(response, sw, ct);
+        if (result?.Data != null)
+            _memoryCache.Set(companyKey, result.Data, TimeSpan.FromMinutes(5));
+        return result?.Data;
     }
 
-    public async Task<CompanyResponseDto<CompanyDto>?> UpdateCompanyAsync(string companyName, UpdateCompanyDto updateDto, CancellationToken ct)
+    public async Task<CompanyDto?> UpdateCompanyAsync(string companyName, UpdateCompanyDto updateDto, CancellationToken ct)
     {
         var sw = Stopwatch.GetTimestamp();
         var url = $"/api/resource/Company/{Uri.EscapeDataString(companyName)}";
         var content = SerializeJson(updateDto);
         var response = await _httpClient.PutAsync(url, content, ct);
-        return await HandleResponse<CompanyResponseDto<CompanyDto>>(response, sw, ct);
+        var result = await HandleResponse<CompanyResponseDto<CompanyDto>>(response, sw, ct);
+        if (result?.Data != null)
+            _memoryCache.Set(CompanyKey(companyName), result.Data, TimeSpan.FromMinutes(5));
+        return result?.Data;
     }
 
     public async Task<bool> DeleteCompanyAsync(string companyName, CancellationToken ct)
@@ -158,7 +188,9 @@ public sealed class ERPNextService
         var sw = Stopwatch.GetTimestamp();
         var url = $"/api/resource/Company/{Uri.EscapeDataString(companyName)}";
         var response = await _httpClient.DeleteAsync(url, ct);
-        return await HandleResponse<bool>(response, sw, ct);
+        var result =  await HandleResponse<bool>(response, sw, ct);
+        _memoryCache.Remove(CompanyKey(companyName));
+        return result;
     }
 
     #endregion

@@ -11,7 +11,7 @@ public static class CompanyApiEndpoints
 {
     public static void RegisterCompanyApiEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        var group = endpoints.MapGroup("api/company/").WithTags("Company");
+        var group = endpoints.MapGroup("api/company/").WithTags("Company").RequireAuthorization();
 
         group.MapPost("", async ([FromBody] CompanyCreateRequest company,
             [FromServices] ILogger<Program> logger,
@@ -24,7 +24,7 @@ public static class CompanyApiEndpoints
             logger.LogInformation("API Create/Update company {name} {abb}", company.Name, company.Abbreviation);
 
             var c = await erpNextService.GetCompanyAsync(company.Name, ct);
-            if (c?.Data == null)
+            if (c == null)
             {
                 CreateCompanyDto cDto = new()
                 {
@@ -39,12 +39,12 @@ public static class CompanyApiEndpoints
                 var erpCompany = await erpNextService.CreateCompanyAsync(cDto, ct);
                 
                 var userEmail = httpContextAccessor.HttpContext?.User?.FindFirst("email")?.Value;
-                if (!string.IsNullOrEmpty(userEmail)) await erpNextService.AddUserInCompanyAsync(userEmail, erpCompany!.Data!.Name, "Administrator", ct);
-                CompanyResponse crResponse = new(erpCompany.Data);
+                if (!string.IsNullOrEmpty(userEmail)) await erpNextService.AddUserInCompanyAsync(userEmail, erpCompany!.Name, "Administrator", ct);
+                CompanyResponse crResponse = new(erpCompany);
 
                 return Results.Ok(crResponse);
             }
-            UpdateCompanyDto updateDto = new(c.Data)
+            UpdateCompanyDto updateDto = new(c)
             {
                 IsEnabled = company.IsEnabled,
                 CustomMicrosoftSharepointFolderPath = company.MicrosoftSharepointFolderPath,
@@ -55,7 +55,7 @@ public static class CompanyApiEndpoints
             };
             
             var erpUpdCompany = await erpNextService.UpdateCompanyAsync(company.Name, updateDto, ct);
-            CompanyResponse response = new(erpUpdCompany.Data);
+            CompanyResponse response = new(erpUpdCompany);
             
             return Results.Ok(response);
         }).WithName("CreateOrUpdateCompany").WithSummary("Create or Update company").Produces<CompanyResponse>();
@@ -71,9 +71,9 @@ public static class CompanyApiEndpoints
             var sw = Stopwatch.GetTimestamp();
             if (logger.IsEnabled(LogLevel.Debug)) logger.LogDebug("Get company {companyName}", companyName);
             var c = await erpNextService.GetCompanyAsync(companyName, ct);
-            if (c?.Data == null) return Results.NotFound("Company not found");
-            CompanyResponse crResponse = new(c.Data);
-            logger.LogInformation("Get company {uId} {email}: OK {sw}", c.Data.Name, c.Data.Abbr, Stopwatch.GetElapsedTime(sw));
+            if (c == null) return Results.NotFound("Company not found");
+            CompanyResponse crResponse = new(c);
+            logger.LogInformation("Get company {uId} {email}: OK {sw}", c.Name, c.Abbr, Stopwatch.GetElapsedTime(sw));
             return Results.Ok(crResponse);
         }).WithName("Company").WithSummary("Get company").Produces<CompanyResponse>();
         
@@ -88,7 +88,7 @@ public static class CompanyApiEndpoints
             var sw = Stopwatch.GetTimestamp();
             if (logger.IsEnabled(LogLevel.Debug)) logger.LogDebug("Get company providers {companyName}", companyName);
             var c = await erpNextService.GetCompanyAsync(companyName, ct);
-            if (c?.Data == null) return Results.NotFound("Company not found");
+            if (c == null) return Results.NotFound("Company not found");
             CompanyProvidersResponse crResponse = new()
             {
                 Providers =
@@ -97,7 +97,7 @@ public static class CompanyApiEndpoints
                     new CompanyProviderResponse { Name = "Google Drive", Alias = "google2" }
                 ]
             };
-            logger.LogInformation("Get company providers {uId} {email}: OK {sw}", c.Data.Name, c.Data.Abbr, Stopwatch.GetElapsedTime(sw));
+            logger.LogInformation("Get company providers {uId} {email}: OK {sw}", c.Name, c.Abbr, Stopwatch.GetElapsedTime(sw));
             return Results.Ok(crResponse);
         }).WithName("CompanyProviders").WithSummary("Get company providers").Produces<CompanyProvidersResponse>();
     }
