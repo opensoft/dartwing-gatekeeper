@@ -19,8 +19,7 @@ var sw = Stopwatch.StartNew();
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddLogging();
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+builder.Services.AddAntiforgery();
 builder.Services.AddOpenApi();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddEndpointsApiExplorer();
@@ -107,13 +106,14 @@ app.UseSwaggerUI(settings =>
     settings.OAuthUsePkce();
 });
 
-
+app.UseAuthentication();
+app.UseAuthorization();
+app.UseAntiforgery();
 app.RegisterAzureApiEndpoints();
 app.RegisterUserApiEndpoints();
 app.RegisterCompanyApiEndpoints();
 app.RegisterFolderApiEndpoints();
-app.UseAuthentication();
-app.UseAuthorization();
+
 
 var t =
     $"v.{typeof(Program).Assembly.GetName().Version}; {typeof(Program).Assembly.GetCustomAttribute<TargetFrameworkAttribute>()?.FrameworkName}; {System.Runtime.InteropServices.RuntimeInformation.OSDescription}";

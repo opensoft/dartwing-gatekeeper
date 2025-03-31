@@ -106,7 +106,6 @@ public static class FilesApiEndpoints
             using GraphApiAdapter clientAdapter = new(clientToken, memoryCache);
             var allSites = await clientAdapter.GetAllSites(ct);
             using GraphApiAdapter adapter = new(providerToken, memoryCache);
-            //var drives = await adapter.Drives(ct);
             List<CdFolder> folders = [];
             var paths = string.IsNullOrEmpty(request.FolderPath) || request.FolderPath == "/"
                 ? []
@@ -114,9 +113,13 @@ public static class FilesApiEndpoints
 
             if (paths.Length == 0)
             {
-                foreach (var site in allSites)
+                List<Task<bool>> tasks = new ();
+                foreach (var site in allSites.Where(s => !s.Id.Contains("-my.sharepoint.com,")))
                 {
+                    
                     folders.Add(new CdFolder { Id = site.Id, Name = site.Name, CanBeSelected = false, Description = "SharePoint site"});
+                    
+                    
                 }
             
                 return Results.Ok(new CdFolderResponse { Folders = folders });
