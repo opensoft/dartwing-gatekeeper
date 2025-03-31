@@ -223,7 +223,7 @@ public static class FilesApiEndpoints
             var keyCloakUser = await keyCloakHelper.GetUserById(userId, ct);
             if (keyCloakUser == null) return Results.Conflict("KeyCloak user not found");
             var userCompanies = await erpNextService.GetUserCompaniesAsync(userEmail, ct);
-            if (userCompanies.Data.All(x => x.User != userEmail)) return Results.Conflict();
+            //if (userCompanies.Data.All(x => x.User != userEmail)) return Results.Conflict();
             var companyDto = await erpNextService.GetCompanyAsync(company, ct);
             if (string.IsNullOrEmpty(companyDto.CustomMicrosoftSharepointFolderPath)) return Results.Conflict("Folder path is empty");
             var providerToken = await keyCloakHelper.GetProviderToken(userEmail, "microsoft2", ct);
@@ -260,6 +260,6 @@ public static class FilesApiEndpoints
             }
 
             return success? Results.Ok() : Results.Conflict();
-        }).WithName("UploadFile").WithSummary("Upload file").WithMetadata(new RequestSizeLimitAttribute(100_000_000));
+        }).WithName("UploadFile").WithSummary("Upload file").WithMetadata(new RequestSizeLimitAttribute(100_000_000)).DisableAntiforgery();
     }
 }
