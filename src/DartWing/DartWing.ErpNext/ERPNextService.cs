@@ -65,7 +65,7 @@ public sealed class ERPNextService
     #region User Permissions
 
     private static string UserPermKey(string email) => "erpNext:UserPerm:" + email;
-    public async Task<UserPermissionsDto?> GetUserCompaniesAsync(string email, CancellationToken ct)
+    public async ValueTask<UserPermissionsDto?> GetUserCompaniesAsync(string email, CancellationToken ct)
     {
         var upKey = UserPermKey(email);
         if (_memoryCache.TryGetValue(upKey, out UserPermissionsDto? userPermissions) && userPermissions != null) return userPermissions;
@@ -157,7 +157,7 @@ public sealed class ERPNextService
         return result?.Data;
     }
 
-    public async Task<CompanyDto?> GetCompanyAsync(string companyName, CancellationToken ct)
+    public async ValueTask<CompanyDto?> GetCompanyAsync(string companyName, CancellationToken ct)
     {
         var companyKey = CompanyKey(companyName);
         if (_memoryCache.TryGetValue(companyKey, out CompanyDto? cDto) && cDto != null) return cDto;
