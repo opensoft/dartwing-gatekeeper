@@ -320,6 +320,6 @@ public static class FilesApiEndpoints
                 fileName ?? Guid.NewGuid().ToString(), contentType ?? "application/octet-stream", fileStream, ct);
 
             return success? Results.Ok() : Results.Conflict();
-        }).WithName("UploadFile").WithSummary("Upload file").WithMetadata(new RequestSizeLimitAttribute(100_000_000)).DisableAntiforgery();
+        }).WithName("UploadFileLink").WithSummary("Upload file by link");
     }
 }
