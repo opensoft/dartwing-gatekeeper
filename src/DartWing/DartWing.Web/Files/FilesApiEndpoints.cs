@@ -261,7 +261,7 @@ public static class FilesApiEndpoints
             return success? Results.Ok() : Results.Conflict();
         }).WithName("UploadFile").WithSummary("Upload file").WithMetadata(new RequestSizeLimitAttribute(100_000_000)).DisableAntiforgery();
         
-        group.MapPost("filelink", async ([FromBody] CdFileLinkRequest request,
+        group.MapPost("uploadbylink", async ([FromBody] CdFileLinkRequest request,
             [FromRoute] string company,
             [FromServices] ILogger<Program> logger,
             [FromServices] IHttpClientFactory httpClientFactory,
@@ -274,43 +274,62 @@ public static class FilesApiEndpoints
         {
             logger.LogInformation("API send file link for company {c}", company);
             var u = httpContextAccessor.HttpContext?.User;
+            var isClientToken = !string.IsNullOrEmpty(u?.FindFirst("azp")?.Value);
             var userEmail = u?.FindFirst("email")?.Value;
-            if (userEmail == null) return Results.BadRequest("User email is null");
-            var userCompaniesTask = erpNextService.GetUserCompaniesAsync(userEmail, ct);
-            //if (userCompanies.Data.All(x => x.User != userEmail)) return Results.Conflict();
-            var companyDtoTask = erpNextService.GetCompanyAsync(company, ct);
-            var providerTokenTask = keyCloakHelper.GetProviderToken(userEmail, "microsoft2", ct);
-            var companyDto = await companyDtoTask;
-            if (string.IsNullOrEmpty(companyDto.CustomMicrosoftSharepointFolderPath)) return Results.Conflict("Folder path is empty");
-            var providerToken = await providerTokenTask;
-            if (string.IsNullOrEmpty(providerToken)) return Results.Conflict();
+            if (!isClientToken)
+            {
+                if (userEmail == null) return Results.BadRequest("User email is null");
+                var userCompaniesTask = erpNextService.GetUserCompaniesAsync(userEmail, ct);
+                //if (userCompanies.Data.All(x => x.User != userEmail)) return Results.Conflict();    
+            }
+            
+            var companyDto = await erpNextService.GetCompanyAsync(company, ct);
+            var folderPath = string.IsNullOrEmpty(request.FolderPath)
+                ? companyDto.CustomMicrosoftSharepointFolderPath
+                : request.FolderPath;
+            if (string.IsNullOrEmpty(folderPath)) return Results.Conflict("Folder path is empty");
+            var tokenTask = isClientToken ? graphApiHelper.GetClientAccessToken(companyDto.CustomMicrosoftTenantId, ct)
+                : keyCloakHelper.GetProviderToken(userEmail, "microsoft2", ct);
+           
+            var token = await tokenTask;
+            if (string.IsNullOrEmpty(token)) return Results.Conflict("Token is null");
             
             MicrosoftGraphApiDriveIdFolderId driveIdFolderId;
-            using GraphApiAdapter adapter = new(providerToken, memoryCache);
-            if (!string.IsNullOrEmpty(companyDto.CustomMicrosoftSharepointUserPath))
+            using GraphApiAdapter adapter = new(token, memoryCache);
+            if (!string.IsNullOrEmpty(companyDto.CustomMicrosoftSharepointUserPath) &&
+                (string.IsNullOrEmpty(request.FolderPath) ||
+                 request.FolderPath == companyDto.CustomMicrosoftSharepointFolderPath))
             {
                 driveIdFolderId = JsonSerializer.Deserialize<MicrosoftGraphApiDriveIdFolderId>(companyDto
                     .CustomMicrosoftSharepointUserPath)!;
             }
             else
             {
-                var clientToken = await graphApiHelper.GetClientAccessTokenFromUserToken(providerToken, ct);
-                var graphManager = new GraphApiManager(adapter, new GraphApiAdapter(clientToken, memoryCache));
-                var (driveId, folderId) = await graphManager.GetDriveByClient(companyDto.CustomMicrosoftSharepointFolderPath, ct);
-                driveIdFolderId = new () { DriveId = driveId, FolderId = folderId };
+                GraphApiManager graphManager;
+                if (isClientToken)
+                {
+                    graphManager = new GraphApiManager(adapter);
+                }
+                else
+                {
+                    var clientToken = await graphApiHelper.GetClientAccessTokenFromUserToken(token, ct);
+                    graphManager = new GraphApiManager(adapter, new GraphApiAdapter(clientToken, memoryCache));
+                }
+
+                var (driveId, folderId) = await graphManager.GetDriveByClient(folderPath, ct);
+                driveIdFolderId = new() { DriveId = driveId, FolderId = folderId };
                 if (!string.IsNullOrEmpty(driveIdFolderId.DriveId))
                 {
-                    var cDto = await erpNextService.GetCompanyAsync(company, ct);
-                    UpdateCompanyDto updateCompany = new(cDto);
-                    updateCompany.CustomMicrosoftSharepointUserPath = JsonSerializer.Serialize(driveIdFolderId);
-                    await erpNextService.UpdateCompanyAsync(company, updateCompany, ct);
+                    UpdateCompanyDto cmp = new(companyDto)
+                        { CustomMicrosoftSharepointUserPath = JsonSerializer.Serialize(driveIdFolderId) };
+                    await erpNextService.UpdateCompanyAsync(company, cmp, ct);
                 }
             }
-            
+
             if (string.IsNullOrEmpty(driveIdFolderId.DriveId)) return Results.Conflict("Folder path is empty");
 
             var client = httpClientFactory.CreateClient();
-            using var message = await client.GetAsync(request.Link, ct);
+            using var message = await client.GetAsync(request.FileLink, ct);
             
             var contentType = message.Content.Headers.ContentType?.MediaType;
             var fileName = message.Content.Headers.ContentDisposition?.FileName;
@@ -321,5 +340,8 @@ public static class FilesApiEndpoints
 
             return success? Results.Ok() : Results.Conflict();
         }).WithName("UploadFileLink").WithSummary("Upload file by link");
+        
+         
     }
+
 }

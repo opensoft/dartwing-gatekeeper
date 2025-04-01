@@ -13,6 +13,12 @@ public class GraphApiManager : IDisposable
         _clientAdapter = clientAdapter;
     }
     
+    public GraphApiManager(GraphApiAdapter clientAdapter)
+    {
+        _userAdapter = clientAdapter;
+        _clientAdapter = clientAdapter;
+    }
+    
     public async Task<(string driveId, string? folderId)> GetDriveByClient(string path, CancellationToken ct)
     {
         if (_clientAdapter == null) return ("", "");
