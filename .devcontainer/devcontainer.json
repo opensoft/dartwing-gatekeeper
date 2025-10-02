@@ -1,0 +1,22 @@
+{
+  "name": "DartWing .NET Gatekeeper",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-dotnettools.csharp",
+        "ms-dotnettools.csdevkit",
+        "editorconfig.editorconfig",
+        "ms-azuretools.vscode-docker"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  },
+  "forwardPorts": [5000, 5001],
+  "postCreateCommand": "cd src/DartWing && dotnet restore",
+  "remoteUser": "vscode"
+}
