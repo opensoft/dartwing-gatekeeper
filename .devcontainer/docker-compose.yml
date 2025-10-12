@@ -1,0 +1,50 @@
+name: dartwingers
+version: "3.7"
+services:
+    gatekeeper:
+        container_name: dartwing_service # Name of the container
+        build:
+            context: ..
+            dockerfile: .devcontainer/Dockerfile
+            args:
+                USERNAME: "${USER:-brett}"       # Use host username, default to 'brett'
+                USER_UID: ${USER_UID:-1000}      # Use host UID, default to 1000
+                USER_GID: ${USER_GID:-1000}      # Use host GID, default to 1000
+                DEBUG: "${DEBUG:-false}"         # Default to 'false' if DEBUG is not set
+        user: "${USER:-brett}"                   # Run container as host user
+        environment:
+            - USER=${USER:-brett}                # Make username available at runtime
+            - USER_UID=${USER_UID:-1000}         # Make UID available at runtime
+            - USER_GID=${USER_GID:-1000}         # Make GID available at runtime
+            - DEBUG=${DEBUG:-false}              # Pass DEBUG to the container environment
+        ports:
+            - "5000:5000"
+            - "5001:5001"
+        networks:
+            - dartnet
+        volumes:
+            # Workspace
+            - ..:/workspaces/dartwing_dotnet_gatekeeper:cached
+            
+            # Shell configurations
+            - ~/.zshrc:/home/${USER:-vscode}/.zshrc:ro
+            - ~/.bashrc:/home/${USER:-vscode}/.bashrc:ro
+            - ~/.profile:/home/${USER:-vscode}/.profile:ro
+            
+            # Git configuration
+            - ~/.gitconfig:/home/${USER:-vscode}/.gitconfig:ro
+            
+            # Oh-My-Zsh installation
+            - ~/.oh-my-zsh:/home/${USER:-vscode}/.oh-my-zsh:ro
+            
+            # SSH configurations and keys
+            - ~/.ssh/config:/home/${USER:-vscode}/.ssh/config:ro
+            - ~/.ssh/id_ed25519:/home/${USER:-vscode}/.ssh/id_ed25519:ro
+            - ~/.ssh/id_ed25519.pub:/home/${USER:-vscode}/.ssh/id_ed25519.pub:ro
+            - ~/.ssh/id_rsa_ado:/home/${USER:-vscode}/.ssh/id_rsa_ado:ro
+            - ~/.ssh/id_rsa_ado.pub:/home/${USER:-vscode}/.ssh/id_rsa_ado.pub:ro
+            - ~/.ssh/known_hosts:/home/${USER:-vscode}/.ssh/known_hosts:ro
+
+networks:
+  dartnet:
+    driver: bridge

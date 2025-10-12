@@ -1,8 +1,8 @@
 {
   "name": "DartWing .NET Gatekeeper",
-  "build": {
-    "dockerfile": "Dockerfile"
-  },
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "gatekeeper",
+  "workspaceFolder": "/workspaces/dartwing_dotnet_gatekeeper",
   "customizations": {
     "vscode": {
       "extensions": [
@@ -17,6 +17,6 @@
     }
   },
   "forwardPorts": [5000, 5001],
-  "postCreateCommand": "cd src/DartWing && dotnet restore",
-  "remoteUser": "vscode"
+  "postCreateCommand": "cd src && dotnet restore",
+  "remoteUser": "${localEnv:USER:brett}"
 }
