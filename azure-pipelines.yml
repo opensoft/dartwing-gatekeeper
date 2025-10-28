@@ -1,7 +1,8 @@
 name: $(Date:yyyyMMdd).$(Rev:r)
 
 trigger:
-- main
+- release
+- qa
 
 resources:
   repositories:
@@ -44,7 +45,7 @@ stages:
             ARG BUILD_CONFIGURATION=Release
             WORKDIR /src
             COPY ["DartWing.Web/DartWing.Web.csproj", "DartWing.Web/"]
-            COPY ["DartWing.ErpNext/DartWing.ErpNext.csproj", "DartWing.ErpNext/"]
+            COPY ["DartWing.Frappe/DartWing.Frappe.csproj", "DartWing.Frappe/"]
             COPY ["DartWing.KeyCloak/DartWing.KeyCloak.csproj", "DartWing.KeyCloak/"]
             COPY ["DartWing.Google/DartWing.Google.csproj", "DartWing.Google/"]
             COPY ["DartWing.Microsoft/DartWing.Microsoft.csproj", "DartWing.Microsoft/"]
@@ -68,7 +69,10 @@ stages:
     - task: Docker@2
       displayName: 'buildAndPush image'
       inputs:
-          containerRegistry: dotNetFarheap
+          ${{ if eq(variables['Build.SourceBranchName'], 'release') }}:
+            containerRegistry: dotNetFarheapDockerRegistryProd
+          ${{ else }}:
+            containerRegistry: dotNetFarheapDockerRegistry
           repository: 'dartwing-dotnet_gatekeeper-$(Build.SourceBranchName)'
           Dockerfile: '$(build.artifactstagingdirectory)/Dockerfile'
           buildContext: 'src/DartWing'
@@ -85,10 +89,8 @@ stages:
 - stage: DEPLOY_QA
   displayName: DEPLOY QA
   dependsOn: BUILD
-  condition: and(succeeded(), eq(variables['Build.SourceBranchName'], 'main'))
+  condition: and(succeeded(), eq(variables['Build.SourceBranchName'], 'qa'))
   
-  pool: KubePool-qa
-
   jobs:
   - job: Deploy
   
@@ -122,4 +124,64 @@ stages:
           - name: ASPNETCORE_HTTP_PORTS
             value: 80
           - name: PapertrailSettings__HostName
-            value: "dartwing-dotnet-gatekeeper-qa"          
+            value: "dartwing-qa"
+          - name: Microsoft__ClientId
+            value: $(QA_MICROSOFT_CLIENTID)
+          - name: Microsoft__ClientSecret
+            value: $(QA_MICROSOFT_CLIENTSECRET)
+
+- stage: DEPLOY_PROD
+  displayName: DEPLOY PROD
+  dependsOn: BUILD
+  condition: and(succeeded(), eq(variables['Build.SourceBranchName'], 'release'))
+  
+  jobs:
+  - job: Deploy
+  
+    steps:
+    - checkout: KubernetesRepositoryProd
+
+    - template: deploy.yml@KubernetesRepositoryProd
+      parameters:
+        deployAll: 'true'
+        
+        Project: dartwing
+        ApplicationName: dotnet-gatekeeper
+        ApplicationEnvironment: prod
+        Namespace: dartwing
+        certManager: true
+        
+        #ingress
+        Hosts: 
+          - dartwing-gatekeeper.opensoft.one
+        secretName: dartwing-gatekeeper.opensoft.one-tls
+
+        #deployment
+        DeploymentID: $(Build.BuildId)
+        CpuRequest: "0.05"
+        CpuLimit: "0.40"
+        MemoryRequest: "150Mi"
+        MemoryLimit: "400Mi"
+        Image: dotnetfarheapdockerregistryprod.azurecr.io/dartwing-dotnet_gatekeeper-$(Build.SourceBranchName):$(Build.BuildId)
+        ImageRegistrySecret: dotnetfarheapdockerregistryprod
+        Environments: 
+          - name: ASPNETCORE_HTTP_PORTS
+            value: 80
+          - name: PapertrailSettings__HostName
+            value: "dartwing"     
+          - name: Microsoft__ClientId
+            value: $(PROD_MICROSOFT_CLIENTID)
+          - name: Microsoft__ClientSecret
+            value: $(PROD_MICROSOFT_CLIENTSECRET)
+          - name: KeyCloak__Domain
+            value: $(PROD_KEYCLOAK_DOMAIN)
+          - name: KeyCloak__ClientId
+            value: $(PROD_KEYCLOAK_CLIENTID)
+          - name: KeyCloak__ClientSecret
+            value: $(PROD_KEYCLOAK_CLIENTSECRET)
+          - name: KeyCloak__RealmName
+            value: $(PROD_KEYCLOAK_REALMNAME)
+          - name: FrappeSite__BaseSiteHost
+            value: $(PROD_FRAPPESITE_BASESITEHOST)   
+          - name: ConnectionStrings__AzureStorage
+            value: $(PROD_AZURESTORAGE_CONNECTIONSTRING)

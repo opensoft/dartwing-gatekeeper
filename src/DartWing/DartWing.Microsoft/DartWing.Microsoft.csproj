@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Azure.Storage.Blobs" Version="12.25.0" />
+      <PackageReference Include="Microsoft.Graph" Version="5.93.0" />
+      <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="9.0.9" />
+      <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="9.0.9" />
+      <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.9" />
+      <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.14.0" />
+    </ItemGroup>
+
+</Project>
