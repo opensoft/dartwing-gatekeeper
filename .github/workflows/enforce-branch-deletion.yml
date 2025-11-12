@@ -1,0 +1,29 @@
+name: Enforce Branch Deletion Permissions
+
+on:
+  delete:
+
+jobs:
+  check-branch-deletion:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check branch deletion permissions
+        run: |
+          DELETED_BRANCH="${{ github.event.ref }}"
+          ACTOR="${{ github.actor }}"
+          
+          # List of protected branches that no one can delete
+          PROTECTED_BRANCHES=("main" "develop" "staging" "production")
+          
+          # Check if deleted branch is protected
+          for protected in "${PROTECTED_BRANCHES[@]}"; do
+            if [[ "$DELETED_BRANCH" == "$protected" ]]; then
+              echo "❌ ERROR: Cannot delete protected branch '$DELETED_BRANCH'"
+              exit 1
+            fi
+          done
+          
+          echo "✅ Branch deletion allowed: $ACTOR deleted branch $DELETED_BRANCH"
+          exit 0
