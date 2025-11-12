@@ -1,29 +1,60 @@
-name: Enforce Branch Deletion Permissions
+name: Enforce Branch Deletion Permissions by Owner
 
 on:
   delete:
 
 jobs:
-  check-branch-deletion:
+  check-branch-ownership:
     runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
-      - name: Check branch deletion permissions
+      - name: Verify branch deletion permissions
         run: |
           DELETED_BRANCH="${{ github.event.ref }}"
-          ACTOR="${{ github.actor }}"
+          DELETER="${{ github.actor }}"
           
-          # List of protected branches that no one can delete
+          # List of protected branches (admin only can delete)
           PROTECTED_BRANCHES=("main" "develop" "staging" "production")
           
-          # Check if deleted branch is protected
+          # Admin users who can delete any branch
+          ADMINS=("brettheap" "claude" "perplexity-bot")
+          
+          # Check if branch is protected
           for protected in "${PROTECTED_BRANCHES[@]}"; do
             if [[ "$DELETED_BRANCH" == "$protected" ]]; then
-              echo "❌ ERROR: Cannot delete protected branch '$DELETED_BRANCH'"
-              exit 1
+              # Check if deleter is admin
+              is_admin=false
+              for admin in "${ADMINS[@]}"; do
+                if [[ "$DELETER" == "$admin" ]]; then
+                  is_admin=true
+                  break
+                fi
+              done
+              
+              if [[ "$is_admin" == false ]]; then
+                echo "❌ ERROR: Cannot delete protected branch '$DELETED_BRANCH' unless you are an admin"
+                exit 1
+              fi
             fi
           done
           
-          echo "✅ Branch deletion allowed: $ACTOR deleted branch $DELETED_BRANCH"
+          # For non-protected branches, enforce owner-based deletion
+          # Extract branch owner from naming convention: owner/branch-name
+          if [[ "$DELETED_BRANCH" =~ ^([^/]+)/(.+)$ ]]; then
+            BRANCH_OWNER="${BASH_REMATCH[1]}"
+            
+            # Check if deleter matches branch owner (case-insensitive)
+            if [[ "${BRANCH_OWNER,,}" != "${DELETER,,}" ]]; then
+              echo "❌ ERROR: Cannot delete branch '$DELETED_BRANCH' created by '$BRANCH_OWNER'. Only the creator or admins can delete it."
+              echo "Current deleter: $DELETER"
+              exit 1
+            fi
+            echo "✅ Branch deletion allowed: $DELETER deleted their own branch $DELETED_BRANCH"
+          else
+            # Branch doesn't follow naming convention - allow deletion
+            # (For backwards compatibility with branches not using owner prefix)
+            echo "✅ Branch deletion allowed: $DELETER deleted branch $DELETED_BRANCH (no owner prefix)"
+          fi
+          
           exit 0
