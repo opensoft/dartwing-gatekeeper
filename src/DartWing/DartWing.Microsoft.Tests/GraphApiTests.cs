@@ -14,7 +14,7 @@ public sealed class GraphApiTests
     {
         var body = new FormUrlEncodedContent([
             new KeyValuePair<string, string>("client_id", "d177cf09-932e-4590-a6b3-47f6ac1a9691"),
-            new KeyValuePair<string, string>("client_secret", "**REMOVED_CLIENT_SECRET_4**"),
+            new KeyValuePair<string, string>("client_secret", ""),
             new KeyValuePair<string, string>("grant_type", "client_credentials"),
             new KeyValuePair<string, string>("scope", "https://graph.microsoft.com/.default")
         ]);
@@ -104,11 +104,10 @@ public sealed class GraphApiTests
         var folds1 = await adapter.GetAllFolders(dr[0].Id, folds[0].Id);
     }
     
-     [TestMethod]
+    [TestMethod]
     public async Task UploadFileFarHeap()
     {
-        var token =
-            "**REMOVED_JWT_TOKEN_1**";
+        var token = "";
 
         var driveId = "b!Xn5lp85zJUmzeSqRE8sOt9uc9r8bA6JMnjzJHmX88PwBA05wwx_NS5_bce0Haj6j";
         var folderId = "01V7HICG2HUQTRMXDO7VFIFRGLSMKMDJAQ";
@@ -121,8 +120,7 @@ public sealed class GraphApiTests
     [TestMethod]
     public async Task UploadFileOpensoft()
     {
-        var token =
-            "**REMOVED_JWT_TOKEN_2**";
+        var token = "";
 
         var driveId = "b!DarVqd9QqEGCX4X7W-YCZXkZ3S_Mo-ZGpR3381Uo_iY7iipW0gWUTbPmZtwZ-O4X";
         var folderId = "0154CUDT22CNQAR3CLEFGJMQ7G33NNC72U";//"0154CUDT5K4VKBRP5HBNHJPKQZRWNE2PV7";

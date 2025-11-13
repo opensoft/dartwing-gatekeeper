@@ -14,7 +14,7 @@ public sealed class GraphApiTests
     {
         var body = new FormUrlEncodedContent([
             new KeyValuePair<string, string>("client_id", "d177cf09-932e-4590-a6b3-47f6ac1a9691"),
-            new KeyValuePair<string, string>("client_secret", "**REMOVED_CLIENT_SECRET_4**"),
+            new KeyValuePair<string, string>("client_secret", ""),
             new KeyValuePair<string, string>("grant_type", "client_credentials"),
             new KeyValuePair<string, string>("scope", "https://graph.microsoft.com/.default")
         ]);

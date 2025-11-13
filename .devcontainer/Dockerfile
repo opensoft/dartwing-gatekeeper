@@ -2,6 +2,10 @@ FROM mcr.microsoft.com/devcontainers/dotnet:1-9.0-noble
 
 USER root
 
+# Install Node.js (needed for Claude Code and Codex CLI)
+RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - \
+    && apt-get install -y nodejs
+
 # Install additional tools
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get -y install --no-install-recommends \
@@ -9,7 +13,18 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     curl \
     wget \
     sudo \
-    && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+    python3 \
+    python3-pip \
+    ffmpeg \
+    zsh \
+    && apt-get clean -y && rm -rf /var/lib/apt/lists/* \
+    && wget -O /usr/local/bin/hadolint https://github.com/hadolint/hadolint/releases/latest/download/hadolint-Linux-x86_64 \
+    && chmod +x /usr/local/bin/hadolint \
+    && wget -qO- https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-unknown-linux-gnu.tar.gz | tar -xzf - -C /usr/local/bin --strip-components=1 uv-x86_64-unknown-linux-gnu/uv uv-x86_64-unknown-linux-gnu/uvx \
+    && chmod +x /usr/local/bin/uv /usr/local/bin/uvx
+
+# Install Claude Code and OpenAI CLI globally
+RUN npm install -g @anthropic-ai/claude-code openai @openai/codex
 
 # Accept build arguments for username, UID, and GID from docker-compose
 ARG USERNAME=vscode
@@ -85,8 +100,7 @@ RUN set -eux && \
 
 # Install global .NET tools as the non-root user
 USER ${USERNAME}
-RUN dotnet tool install --global dotnet-ef \
-    && dotnet tool install --global dotnet-format
+RUN dotnet tool install --global dotnet-format
 
 # Add .NET tools to PATH
 ENV PATH="${PATH}:/home/${USERNAME}/.dotnet/tools"

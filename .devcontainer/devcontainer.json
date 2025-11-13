@@ -3,20 +3,64 @@
   "dockerComposeFile": "docker-compose.yml",
   "service": "gatekeeper",
   "workspaceFolder": "/workspaces/dartwing_dotnet_gatekeeper",
+  "initializeCommand": [
+    "bash",
+    "-lc",
+    "cid=$(docker ps -aq --filter name=^dartwing-gateway$); if [ -n \"$cid\" ]; then docker rm -f dartwing-gateway; fi"
+  ],
   "customizations": {
     "vscode": {
       "extensions": [
+        // C# and .NET extensions
         "ms-dotnettools.csharp",
         "ms-dotnettools.csdevkit",
         "editorconfig.editorconfig",
-        "ms-azuretools.vscode-docker"
+        "formulahendry.dotnet-test-explorer",
+        "jmrog.vscode-nuget-package-manager",
+        "kreativ-software.csharpextensions",
+        "ms-dotnettools.blazorwasm-companion",
+        // infrastructure and container extensions
+        "ms-azuretools.vscode-docker",
+        "eamodio.gitlens",
+        "k--kato.docomment",
+        // AI assistance extensions
+        "anthropic.claude-code",
+        "openai.chatgpt",
+        "GitHub.copilot",
+        "GitHub.copilot-chat"
       ],
       "settings": {
-        "terminal.integrated.defaultProfile.linux": "bash"
+        "terminal.integrated.defaultProfile.linux": "zsh"
       }
     }
   },
-  "forwardPorts": [5000, 5001],
+  "forwardPorts": [5000, 5001, 1455],
   "postCreateCommand": "cd src && dotnet restore",
-  "remoteUser": "${localEnv:USER:brett}"
+  "containerEnv": {
+    "SSH_AUTH_SOCK": "",
+    "DISABLE_AUTO_SSH_AGENT": "1"
+  },
+  "mounts": [
+    // Make local Claude CLI config available inside the container
+    "source=${localEnv:HOME}/.claude,target=/root/.claude,type=bind,consistency=cached",
+    "source=${localEnv:HOME}/.codex,target=/root/.codex,type=bind,consistency=cached",
+    "source=${localEnv:HOME}/.codex,target=${localEnv:HOME}/.codex,type=bind",
+    "source=${localEnv:HOME}/.claude,target=${localEnv:HOME}/.claude,type=bind"
+  ],
+  "terminal.integrated.profiles.linux": {
+  "zsh": {
+    "path": "/bin/zsh",
+    "args": ["-l"]
+  },
+  "Codex": {
+    "path": "/bin/zsh",
+    "args": ["-c", "codex cmd; exec zsh"]
+  },
+  "Claude Code": {
+    "path": "/bin/zsh",
+    "args": ["-c", "claude cmd; exec zsh"]
+  }
+  },
+  "terminal.integrated.defaultProfile.linux": "zsh",
+  "remoteUser": "${localEnv:USER:vscode}"
 }

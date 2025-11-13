@@ -20,7 +20,7 @@ public static class AzureApiEndpoints
             CancellationToken ct) =>
         {
             var clientId = "d177cf09-932e-4590-a6b3-47f6ac1a9691";
-            var secret = "**REMOVED_CLIENT_SECRET_5**";
+            var secret = "";
             var redirectUri = "http://localhost:5228/api/azure/auth/callback";
 
             var client = httpClientFactory.CreateClient("Azure");
@@ -38,7 +38,7 @@ public static class AzureApiEndpoints
             CancellationToken ct) =>
         {
             var clientId = "b8cd1e83-acee-4fa7-a7a4-b8b6ad15aa02";
-            var secret = "**REMOVED_CLIENT_SECRET_2**";
+            var secret = "";
             var redirectUri = "http://localhost:5228/api/azure/auth/callback/service";
 
             var client = httpClientFactory.CreateClient("Azure");
