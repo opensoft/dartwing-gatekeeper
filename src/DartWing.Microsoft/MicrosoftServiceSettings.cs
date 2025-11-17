@@ -1,6 +1,6 @@
 namespace DartWing.Microsoft;
 
-public sealed class MicrosoftSettings
+public sealed class MicrosoftServiceSettings
 {
     public string ClientId { get; set; }
     public string ClientSecret { get; set; }
