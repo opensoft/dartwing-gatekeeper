@@ -3,6 +3,14 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
+# ====================================
+# DevContainer Environment Variables
+# ====================================
+# Never commit actual .env files - they may contain sensitive information
+.devcontainer/.env
+.devcontainer/.env.local
+.devcontainer/.env.*.local
+
 # User specific
 **/.idea/**/workspace.xml
 **/.idea/**/tasks.xml
