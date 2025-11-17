@@ -19,11 +19,19 @@
         "jmrog.vscode-nuget-package-manager",
         "kreativ-software.csharpextensions",
         "ms-dotnettools.blazorwasm-companion",
-        // infrastructure and container extensions
+        // Infrastructure extensions
+        "redhat.vscode-yaml",
+        "esbenp.prettier-vscode",
+        "dbaeumer.vscode-eslint",
+        "continue.continue",
         "ms-azuretools.vscode-docker",
+        "bradlc.vscode-tailwindcss",
+        "esbenp.prettier-vscode",
         "eamodio.gitlens",
         "k--kato.docomment",
         // AI assistance extensions
+        "sourcegraph.cody-ai",
+        "anthropic.claude-dev",
         "anthropic.claude-code",
         "openai.chatgpt",
         "GitHub.copilot",
@@ -42,13 +50,6 @@
     "SSH_AUTH_SOCK": "",
     "DISABLE_AUTO_SSH_AGENT": "1"
   },
-  "mounts": [
-    // Make local Claude CLI config available inside the container
-    "source=${localEnv:HOME}/.claude,target=/root/.claude,type=bind,consistency=cached",
-    "source=${localEnv:HOME}/.codex,target=/root/.codex,type=bind,consistency=cached",
-    "source=${localEnv:HOME}/.codex,target=${localEnv:HOME}/.codex,type=bind",
-    "source=${localEnv:HOME}/.claude,target=${localEnv:HOME}/.claude,type=bind"
-  ],
   "terminal.integrated.profiles.linux": {
   "zsh": {
     "path": "/bin/zsh",
