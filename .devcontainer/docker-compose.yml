@@ -1,8 +1,8 @@
 name: dartwingers
 version: "3.7"
 services:
-    gatekeeper:
-        container_name: dartwing-gatekeeper # Name of the container
+    gateway:
+        container_name: dartwing-gateway # Name of the container
         build:
             context: ..
             dockerfile: .devcontainer/Dockerfile
@@ -18,14 +18,14 @@ services:
             - USER_GID=${USER_GID:-1000}         # Make GID available at runtime
             - DEBUG=${DEBUG:-false}              # Pass DEBUG to the container environment
         ports:
-            - "0.0.0.0:5000:5000"
-            - "0.0.0.0:5001:5001"
+            - "0.0.0.0:5228:5228"
+            - "0.0.0.0:7149:7149"
             - "0.0.0.0:1455:1455"
         networks:
             - dartnet
         volumes:
             # Workspace
-            - ..:/workspaces/dartwing_dotnet_gatekeeper:cached
+            - ..:/workspaces/dartwing-gateway:cached
 
             # Shell configurations
             - ~/.zshrc:/home/${USER:-vscode}/.zshrc:ro

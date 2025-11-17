@@ -1,8 +1,8 @@
 {
-  "name": "DartWing .NET Gatekeeper",
+  "name": "${containerEnv:PROJECT_NAME:dotNet Project}",
   "dockerComposeFile": "docker-compose.yml",
-  "service": "gatekeeper",
-  "workspaceFolder": "/workspaces/dartwing_dotnet_gatekeeper",
+  "service": "gateway",
+  "workspaceFolder": "/workspaces/dartwing-gateway",
   "initializeCommand": [
     "bash",
     "-lc",
@@ -27,14 +27,16 @@
         "anthropic.claude-code",
         "openai.chatgpt",
         "GitHub.copilot",
-        "GitHub.copilot-chat"
+        "GitHub.copilot-chat",
+        "Google.geminicodeassistant",
+        "google.gemini-cli-vscode-ide-companion"
       ],
       "settings": {
         "terminal.integrated.defaultProfile.linux": "zsh"
       }
     }
   },
-  "forwardPorts": [5000, 5001, 1455],
+  "forwardPorts": [5228, 7149, 1455],
   "postCreateCommand": "cd src && dotnet restore",
   "containerEnv": {
     "SSH_AUTH_SOCK": "",
