@@ -9,6 +9,7 @@ using DartWing.Microsoft;
 using DartWing.Web.Api;
 using DartWing.Web.Auth;
 using DartWing.Web.Files;
+using DartWing.Web.Health;
 using DartWing.Web.Logging;
 using DartWing.Web.Users;
 using Microsoft.AspNetCore.Http.Json;
@@ -109,6 +110,7 @@ app.UseSwaggerUI(settings =>
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseAntiforgery();
+app.RegisterHealthApiEndpoints();
 app.RegisterAzureApiEndpoints();
 app.RegisterUserApiEndpoints();
 app.RegisterCompanyApiEndpoints();
