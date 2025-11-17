@@ -17,15 +17,12 @@ public static class AzureApiEndpoints
         group.MapGet("", async ([FromQuery] string code,
             [FromServices] IHttpClientFactory httpClientFactory,
             [FromServices] IMemoryCache memoryCache,
+            [FromServices] MicrosoftSettings settings,
             CancellationToken ct) =>
         {
-            var clientId = "d177cf09-932e-4590-a6b3-47f6ac1a9691";
-            var secret = "";
-            var redirectUri = "http://localhost:5228/api/azure/auth/callback";
-
             var client = httpClientFactory.CreateClient("Azure");
 
-            var token = await GetAccessToken(client, "common", clientId, secret, code, redirectUri, ct);
+            var token = await GetAccessToken(client, "common", settings.ClientId, settings.ClientSecret, code, settings.RedirectUri, ct);
             await CallGraphApi(client, token);
             var folders = await new GraphApiAdapter(token, memoryCache).GetMyFolders(ct);
 
@@ -35,22 +32,19 @@ public static class AzureApiEndpoints
         group.MapGet("service", async ([FromQuery] string code,
             [FromServices] IHttpClientFactory httpClientFactory,
             [FromServices] IMemoryCache memoryCache,
+            [FromServices] MicrosoftServiceSettings serviceSettings,
             CancellationToken ct) =>
         {
-            var clientId = "b8cd1e83-acee-4fa7-a7a4-b8b6ad15aa02";
-            var secret = "";
-            var redirectUri = "http://localhost:5228/api/azure/auth/callback/service";
-
             var client = httpClientFactory.CreateClient("Azure");
-            
-            var userToken = await GetAccessToken(client, "common", clientId, secret, code, redirectUri, ct);
-            
+
+            var userToken = await GetAccessToken(client, "common", serviceSettings.ClientId, serviceSettings.ClientSecret, code, serviceSettings.RedirectUri, ct);
+
             var handler = new JwtSecurityTokenHandler();
             var jwt = handler.ReadJwtToken(userToken);
 
             var tenantId = jwt.Claims.FirstOrDefault(c => c.Type == "tid")?.Value;
 
-            var token = await GetAccessToken(client, tenantId, clientId, secret, "", redirectUri, ct);
+            var token = await GetAccessToken(client, tenantId, serviceSettings.ClientId, serviceSettings.ClientSecret, "", serviceSettings.RedirectUri, ct);
             await CallGraphApi(client, token);
             var folders = await new GraphApiAdapter(token, memoryCache).GetMyFolders(ct);
 

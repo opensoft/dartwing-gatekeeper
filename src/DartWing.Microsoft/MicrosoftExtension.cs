@@ -9,9 +9,14 @@ public static class MicrosoftExtension
         ConfigurationManager configuration)
     {
         services.AddMemoryCache();
+
         var settings = new MicrosoftSettings();
         configuration.Bind("Microsoft", settings);
         services.AddSingleton(settings);
+
+        var serviceSettings = new MicrosoftServiceSettings();
+        configuration.Bind("MicrosoftService", serviceSettings);
+        services.AddSingleton(serviceSettings);
 
         services.AddHttpClient<GraphApiHelper>();
         return services;
