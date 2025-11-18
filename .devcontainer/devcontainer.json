@@ -22,16 +22,14 @@
         "jmrog.vscode-nuget-package-manager",
         "kreativ-software.csharpextensions",
         "ms-dotnettools.blazorwasm-companion",
+        "k--kato.docomment",
         // Infrastructure extensions
         "redhat.vscode-yaml",
         "esbenp.prettier-vscode",
         "dbaeumer.vscode-eslint",
-        "continue.continue",
         "ms-azuretools.vscode-docker",
-        "bradlc.vscode-tailwindcss",
         "esbenp.prettier-vscode",
         "eamodio.gitlens",
-        "k--kato.docomment",
         // AI assistance extensions
         "sourcegraph.cody-ai",
         "anthropic.claude-dev",
