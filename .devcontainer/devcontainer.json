@@ -1,6 +1,9 @@
 {
   "name": "${containerEnv:PROJECT_NAME:dotNet Project}",
-  "dockerComposeFile": "docker-compose.yml",
+  "dockerComposeFile": [
+    "docker-compose.yml",
+    "docker-compose.override.yml"
+  ],
   "service": "gateway",
   "workspaceFolder": "/workspaces/dartwing-gateway",
   "initializeCommand": [
