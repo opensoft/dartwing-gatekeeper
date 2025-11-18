@@ -37,7 +37,7 @@
         "openai.chatgpt",
         "GitHub.copilot",
         "GitHub.copilot-chat",
-        "Google.geminicodeassistant",
+        "Google.geminicodeassist",
         "google.gemini-cli-vscode-ide-companion"
       ],
       "settings": {
